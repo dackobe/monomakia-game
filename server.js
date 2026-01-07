@@ -3,7 +3,6 @@ const fs = require('fs');
 const WebSocket = require('ws');
 const path = require('path');
 
-// サーバーの作成
 const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/') {
     const filePath = path.join(__dirname, 'index.html');
@@ -27,14 +26,12 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(msg.toString());
 
-      // 1. 入室処理
       if (data.type === "join") {
         const roomId = data.room;
         ws.userName = data.userName || "名無し";
         ws.roomId = roomId;
         if (!rooms[roomId]) rooms[roomId] = { players: [], spectators: [] };
 
-        // 切断済みプレイヤーの掃除
         rooms[roomId].players = rooms[roomId].players.filter(p => p.readyState === WebSocket.OPEN);
 
         if (rooms[roomId].players.length < 2) {
@@ -52,13 +49,11 @@ wss.on('connection', (ws) => {
         }
       }
 
-      // 2. 退室処理
       if (data.type === "leave") {
         handleDisconnect(ws);
         ws.send(JSON.stringify({ type: "left_success" }));
       }
 
-      // 3. 準備完了
       if (data.type === "ready" && !ws.isSpectator) {
         ws.isReady = true;
         ws.hp = 10;
@@ -82,7 +77,6 @@ wss.on('connection', (ws) => {
         }
       }
 
-      // 4. カード選択
       if (data.type === "card" && !ws.isSpectator) {
         if (!ws.opponent || ws.hp <= 0 || ws.opponent.hp <= 0) return;
         ws.selectedCard = data.card;
@@ -90,6 +84,7 @@ wss.on('connection', (ws) => {
         if (ws.opponent.selectedCard) {
           const res = judge(ws.selectedCard, ws.opponent.selectedCard);
           
+          // ダメージ適用
           if (res.self === 1) ws.opponent.hp -= 1;
           if (res.opp === 1) ws.hp -= 1;
 
@@ -150,14 +145,30 @@ function broadcast(roomId, data) {
   room.spectators.forEach(p => { if(p.readyState === WebSocket.OPEN) p.send(msg); });
 }
 
+/**
+ * 相性判定ロジック
+ * 💥(smash) -> 🛡️(guard)
+ * 🛡️(guard) -> ⚔️(attack)
+ * ⚔️(attack) -> 🃏(feint)
+ * 🃏(feint) -> 💥(smash)
+ */
 function judge(a, b) {
-  const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
-  if (a === b) return { self: 0, opp: 0 };
-  if (winMap[a] === b) return { self: 1, opp: 0 }; 
-  return { self: 0, opp: 1 }; 
+  const winMap = {
+    smash: "guard",   // スマッシュはガードにのみ勝つ
+    guard: "attack",  // ガードはアタックにのみ勝つ
+    attack: "feint",  // アタックはフェイントにのみ勝つ
+    feint: "smash"    // フェイントはスマッシュにのみ勝つ
+  };
+
+  // 自分が勝つケース
+  if (winMap[a] === b) return { self: 1, opp: 0 };
+  // 相手が勝つケース
+  if (winMap[b] === a) return { self: 0, opp: 1 };
+  
+  // それ以外（同手、または一つ飛ばしの関係）はすべて引き分け
+  return { self: 0, opp: 0 };
 }
 
-// 公開用のポート設定 (環境変数PORT、なければ8080)
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`MONOMAKIA Server running on port ${PORT}`);
