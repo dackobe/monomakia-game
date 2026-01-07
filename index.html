@@ -10,7 +10,7 @@
       --card-bg: #16213e;
       --accent-color: #1a1a2e;
       --text-main: #e94560;
-      --glow-color: rgba(233, 69, 96, 0.8); /* 蛍光の輝き用 */
+      --glow-color: rgba(233, 69, 96, 0.8);
       --text-sub: #ffffff;
       --hp-green: #00ff88;
       --hp-red: #ff4b2b;
@@ -31,34 +31,15 @@
     .screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
     .active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
-    /* --- タイトルロゴ: SVG 蛍光エフェクト --- */
-    .logo-box {
-      width: 95%;
-      max-width: 450px;
-      margin-bottom: 2px;
-      display: flex;
-      justify-content: center;
-    }
+    .logo-box { width: 95%; max-width: 450px; margin-bottom: 2px; display: flex; justify-content: center; }
     .game-logo-svg {
-      width: 100%;
-      height: auto;
-      display: block;
-      /* 重ね掛けで光を強くする */
-      filter: drop-shadow(0 0 5px var(--glow-color)) 
-              drop-shadow(0 0 15px var(--glow-color));
+      width: 100%; height: auto; display: block;
+      filter: drop-shadow(0 0 5px var(--glow-color)) drop-shadow(0 0 15px var(--glow-color));
     }
-    .game-logo-text {
-      font-family: 'Times New Roman', serif;
-      font-weight: bold;
-      fill: var(--text-main);
-      text-anchor: middle;
-      letter-spacing: 6px;
-    }
-    /* ------------------------------------------- */
+    .game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; }
 
     .connection-panel {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 8px 15px; border-radius: 20px; margin-bottom: 25px;
+      background: rgba(255, 255, 255, 0.03); padding: 8px 15px; border-radius: 20px; margin-bottom: 25px;
       display: flex; align-items: center; gap: 8px; font-size: 0.7em;
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; }
@@ -87,23 +68,25 @@
       border: 1px solid rgba(255,255,255,0.05);
     }
     .player-row { display: flex; align-items: center; justify-content: space-between; }
-    .name-label { font-size: 0.85em; color: var(--text-main); width: 80px; text-align: left; overflow: hidden; white-space: nowrap; }
-    .hp-bar-outer { flex-grow: 1; height: 6px; background: #111; margin: 0 10px; overflow: hidden; }
-    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s ease-out; }
+    .name-label { font-size: 0.85em; color: var(--text-main); width: 100px; text-align: left; overflow: hidden; white-space: nowrap; }
+    .hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; overflow: hidden; border-radius: 4px; }
+    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
 
     .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
     .card-btn {
       height: 95px; background: #0a0a0f; border: 1px solid #333;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent; border-radius: 8px;
     }
+    .card-btn:active:not(:disabled) { background: #1a1a2e; }
     .card-btn b { font-size: 1rem; margin-bottom: 4px; }
-    .advantage-info { font-size: 0.6em; color: #888; }
+    .advantage-info { font-size: 0.65em; color: #888; }
 
     #log {
-      width: 100%; height: 110px; overflow-y: auto; margin-top: 20px;
-      font-size: 0.75em; background: rgba(0,0,0,0.4); padding: 10px; text-align: left;
-      border-left: 2px solid var(--text-main); box-sizing: border-box; color: #999;
+      width: 100%; height: 140px; overflow-y: auto; margin-top: 20px;
+      font-size: 0.8em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left;
+      border-left: 3px solid var(--text-main); box-sizing: border-box; color: #ccc;
+      line-height: 1.6;
     }
 
     .overlay {
@@ -169,25 +152,25 @@
       <div id="player-ui">
         <p id="game-info" style="font-size: 0.85em; margin-bottom: 15px; color: #888;">策を投じよ</p>
         <div class="card-grid">
-          <button class="card-btn btn-smash" onclick="sendCard('smash')">
+          <button class="card-btn" onclick="sendCard('smash')">
             <b>💥 スマッシュ</b>
-            <span class="advantage-info">▶ 🛡️ 防御を砕く</span>
+            <span class="advantage-info">▶ 🛡️ 防御を粉砕</span>
           </button>
-          <button class="card-btn btn-guard" onclick="sendCard('guard')">
+          <button class="card-btn" onclick="sendCard('guard')">
             <b>🛡️ 防御</b>
             <span class="advantage-info">▶ ⚔️ 攻撃を弾く</span>
           </button>
-          <button class="card-btn btn-attack" onclick="sendCard('attack')">
+          <button class="card-btn" onclick="sendCard('attack')">
             <b>⚔️ 攻撃</b>
-            <span class="advantage-info">▶ 🃏 🃏を斬る</span>
+            <span class="advantage-info">▶ 🃏 フェイントを斬る</span>
           </button>
-          <button class="card-btn btn-feint" onclick="sendCard('feint')">
+          <button class="card-btn" onclick="sendCard('feint')">
             <b>🃏 フェイント</b>
-            <span class="advantage-info">▶ 💥 💥を躱す</span>
+            <span class="advantage-info">▶ 💥 スマッシュを躱す</span>
           </button>
         </div>
       </div>
-      <div id="spec-ui" style="display:none; padding: 30px 0; color:#666;">📺 観戦中</div>
+      <div id="spec-ui" style="display:none; padding: 20px 0; color:var(--text-main); font-weight:bold;">📺 観戦中</div>
       <div id="log"></div>
       <button class="exit-link-btn" onclick="confirmLeave()">降参して退室する</button>
     </div>
@@ -232,35 +215,62 @@
         if (data.type === "joined") {
           isSpectator = (data.role === "spectator");
           document.getElementById('room-display').innerText = data.room;
-          document.getElementById('role-text').innerText = isSpectator ? "観戦者として入室" : "戦士として入室";
+          document.getElementById('role-text').innerText = isSpectator ? "👁 観戦者として入室" : "⚔️ 戦士として入室";
           showScreen('screen-wait');
         }
+
         if (data.type === "start") {
           showScreen('screen-game');
           document.getElementById('p1-name').innerText = data.p1_name;
           document.getElementById('p2-name').innerText = data.p2_name;
           document.getElementById('player-ui').style.display = isSpectator ? "none" : "block";
           document.getElementById('spec-ui').style.display = isSpectator ? "block" : "none";
-          updateHP(10, 10);
+          // 途中入室の観戦者なら送られてきたHP、そうでなければ10をセット
+          const h1 = data.p1_hp !== undefined ? data.p1_hp : 10;
+          const h2 = data.p2_hp !== undefined ? data.p2_hp : 10;
+          updateHP(h1, h2);
+          log.innerHTML = `<div style="color:var(--hp-green);">--- 決闘開始 ---</div>`;
         }
+
         if (data.type === "result") {
           updateHP(data.p1_hp, data.p2_hp);
-          log.innerHTML = `<div><span style="color:var(--text-main)">⚔️</span> ${data.p1_name}: ${translateCard(data.p1_card)} vs ${data.p2_name}: ${translateCard(data.p2_card)}</div>` + log.innerHTML;
-          document.getElementById('game-info').innerText = "次なる策を";
+          
+          const actionText = {
+            smash: "の豪腕が火を吹き、盾ごと粉砕した！",
+            guard: "の鉄壁が、相手の剣を完璧に弾き返した！",
+            attack: "の鋭い一閃が、相手の隙を鮮やかに斬り伏せた！",
+            feint: "の変幻自在な動きが、相手の渾身の一撃を翻弄した！"
+          };
+
+          const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
+          let logMsg = "";
+
+          if (winMap[data.p1_card] === data.p2_card) {
+            logMsg = `<div style="color:var(--hp-green);">🔥 【${data.p1_name}】${actionText[data.p1_card]}</div>`;
+          } else if (winMap[data.p2_card] === data.p1_card) {
+            logMsg = `<div style="color:var(--hp-red);">💀 【${data.p2_name}】${actionText[data.p2_card]}</div>`;
+          } else {
+            logMsg = `<div style="color:#777;">⚡ 【${translateCard(data.p1_card)} vs ${translateCard(data.p2_card)}】 両者の火花が散る！</div>`;
+          }
+          
+          log.innerHTML = logMsg + log.innerHTML;
+          if(!isSpectator) document.getElementById('game-info').innerText = "次なる策を";
         }
+
         if (data.type === "finish") {
           document.getElementById('winner-text').innerText = data.winner + " の勝利";
           document.getElementById('finish-screen').style.display = "flex";
         }
+
         if (data.type === "info") {
-          log.innerHTML = `<div style="color:#555;">${data.message}</div>` + log.innerHTML;
+          log.innerHTML = `<div style="color:#888; font-style:italic;">[Info] ${data.message}</div>` + log.innerHTML;
           if(document.getElementById('wait-info')) document.getElementById('wait-info').innerText = data.message;
         }
       };
     }
 
     function translateCard(card) {
-      const map = { smash: "💥", guard: "🛡️", attack: "⚔️", feint: "🃏" };
+      const map = { smash: "💥 スマッシュ", guard: "🛡️ 防御", attack: "⚔️ 攻撃", feint: "🃏 フェイント" };
       return map[card] || card;
     }
 
