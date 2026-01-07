@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MONOMAKIA - モノマキア</title>
+  <style>
+    :root {
+      --bg-color: #0d0d16;
+      --card-bg: #16213e;
+      --accent-color: #1a1a2e;
+      --text-main: #e94560;
+      --glow-color: rgba(233, 69, 96, 0.8); /* 蛍光の輝き用 */
+      --text-sub: #ffffff;
+      --hp-green: #00ff88;
+      --hp-red: #ff4b2b;
+      --status-online: #00ff88;
+      --status-offline: #ff4444;
+      --color-smash: #ffcc00;
+      --color-guard: #4d94ff;
+      --color-attack: #ff4d4d;
+      --color-feint: #b366ff;
+    }
+
+    body {
+      font-family: 'Hiragino Mincho ProN', 'Georgia', serif;
+      text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
+    .active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    /* --- タイトルロゴ: SVG 蛍光エフェクト --- */
+    .logo-box {
+      width: 95%;
+      max-width: 450px;
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: center;
+    }
+    .game-logo-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      /* 重ね掛けで光を強くする */
+      filter: drop-shadow(0 0 5px var(--glow-color)) 
+              drop-shadow(0 0 15px var(--glow-color));
+    }
+    .game-logo-text {
+      font-family: 'Times New Roman', serif;
+      font-weight: bold;
+      fill: var(--text-main);
+      text-anchor: middle;
+      letter-spacing: 6px;
+    }
+    /* ------------------------------------------- */
+
+    .connection-panel {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px 15px; border-radius: 20px; margin-bottom: 25px;
+      display: flex; align-items: center; gap: 8px; font-size: 0.7em;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-connecting { background: #ffcc00; animation: blink 1s infinite; }
+    .dot-online { background: var(--status-online); box-shadow: 0 0 10px var(--status-online); }
+    .dot-offline { background: var(--status-offline); }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    input {
+      padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #333;
+      width: 80%; max-width: 260px; margin-bottom: 15px; background: #000; color: white; text-align: center;
+    }
+    button {
+      padding: 12px 24px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); 
+      background: var(--accent-color); color: white; font-weight: bold; transition: 0.3s;
+    }
+    .primary-btn { background: var(--text-main); border: none; width: 220px; font-size: 1.1em; }
+    .primary-btn:active { transform: scale(0.98); }
+    
+    .exit-link-btn { background: none; border: none; color: #666; font-size: 0.8em; margin-top: 25px; text-decoration: underline; }
+
+    .battle-field { width: 100%; max-width: 500px; }
+    .hp-section {
+      background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px;
+      display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .player-row { display: flex; align-items: center; justify-content: space-between; }
+    .name-label { font-size: 0.85em; color: var(--text-main); width: 80px; text-align: left; overflow: hidden; white-space: nowrap; }
+    .hp-bar-outer { flex-grow: 1; height: 6px; background: #111; margin: 0 10px; overflow: hidden; }
+    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s ease-out; }
+
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .card-btn {
+      height: 95px; background: #0a0a0f; border: 1px solid #333;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .card-btn b { font-size: 1rem; margin-bottom: 4px; }
+    .advantage-info { font-size: 0.6em; color: #888; }
+
+    #log {
+      width: 100%; height: 110px; overflow-y: auto; margin-top: 20px;
+      font-size: 0.75em; background: rgba(0,0,0,0.4); padding: 10px; text-align: left;
+      border-left: 2px solid var(--text-main); box-sizing: border-box; color: #999;
+    }
+
+    .overlay {
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.95); display: none; flex-direction: column;
+      align-items: center; justify-content: center; z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="screen-name" class="screen active">
+    <div class="logo-box">
+      <svg class="game-logo-svg" viewBox="0 0 380 70">
+        <text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text>
+      </svg>
+    </div>
+    <p style="font-size: 1em; letter-spacing: 5px; margin-bottom: 15px; color: var(--text-main); opacity: 0.7;">一対一の決闘</p>
+    
+    <div class="connection-panel">
+      <div id="status-dot" class="status-dot dot-connecting"></div>
+      <span id="status-text">CONNECTING...</span>
+    </div>
+
+    <input type="text" id="user-name" placeholder="戦士の名を入力せよ" maxlength="10">
+    <button id="start-button" class="primary-btn" onclick="showScreen('screen-lobby')" disabled>門をくぐる</button>
+  </div>
+
+  <div id="screen-lobby" class="screen">
+    <h2 style="letter-spacing: 3px; font-size: 1.2em; color: var(--text-main);">決闘の場を選択</h2>
+    <div class="room-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 400px;">
+      <button class="card-btn" onclick="joinRoom(1)">第壱の間</button>
+      <button class="card-btn" onclick="joinRoom(2)">第弐の間</button>
+      <button class="card-btn" onclick="joinRoom(3)">第参の間</button>
+      <button class="card-btn" onclick="joinRoom(4)">第四の間</button>
+    </div>
+    <button class="exit-link-btn" onclick="showScreen('screen-name')">名を改める</button>
+  </div>
+
+  <div id="screen-wait" class="screen">
+    <h2 id="room-display" style="color:var(--text-main); letter-spacing: 2px;">ROOM</h2>
+    <p id="role-text" style="font-size: 0.8em; opacity: 0.7;">魂を同期中...</p>
+    <button id="ready-btn" class="primary-btn" onclick="sendReady()">準備完了</button>
+    <p id="wait-info" style="margin-top:20px; color:var(--status-online); font-size: 0.8em;"></p>
+    <button class="exit-link-btn" onclick="leaveRoom()">戦場を去る</button>
+  </div>
+
+  <div id="screen-game" class="screen">
+    <div class="battle-field">
+      <div class="hp-section">
+        <div class="player-row">
+          <span class="name-label" id="p1-name">あなた</span>
+          <div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div>
+          <span id="p1-hp-text" style="font-size: 0.8em; width: 30px;">10</span>
+        </div>
+        <div class="player-row">
+          <span class="name-label" id="p2-name">相手</span>
+          <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
+          <span id="p2-hp-text" style="font-size: 0.8em; width: 30px;">10</span>
+        </div>
+      </div>
+
+      <div id="player-ui">
+        <p id="game-info" style="font-size: 0.85em; margin-bottom: 15px; color: #888;">策を投じよ</p>
+        <div class="card-grid">
+          <button class="card-btn btn-smash" onclick="sendCard('smash')">
+            <b>💥 スマッシュ</b>
+            <span class="advantage-info">▶ 🛡️ 防御を砕く</span>
+          </button>
+          <button class="card-btn btn-guard" onclick="sendCard('guard')">
+            <b>🛡️ 防御</b>
+            <span class="advantage-info">▶ ⚔️ 攻撃を弾く</span>
+          </button>
+          <button class="card-btn btn-attack" onclick="sendCard('attack')">
+            <b>⚔️ 攻撃</b>
+            <span class="advantage-info">▶ 🃏 🃏を斬る</span>
+          </button>
+          <button class="card-btn btn-feint" onclick="sendCard('feint')">
+            <b>🃏 フェイント</b>
+            <span class="advantage-info">▶ 💥 💥を躱す</span>
+          </button>
+        </div>
+      </div>
+      <div id="spec-ui" style="display:none; padding: 30px 0; color:#666;">📺 観戦中</div>
+      <div id="log"></div>
+      <button class="exit-link-btn" onclick="confirmLeave()">降参して退室する</button>
+    </div>
+  </div>
+
+  <div id="finish-screen" class="overlay">
+    <h1 id="winner-text" style="color:var(--text-main); font-size: 2.2em; letter-spacing: 5px;">勝利</h1>
+    <button class="primary-btn" onclick="leaveRoom()">ロビーへ戻る</button>
+  </div>
+
+  <script>
+    let ws;
+    let myName = "";
+    let isSpectator = false;
+
+    function connectWS() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${location.host}`);
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      const startBtn = document.getElementById('start-button');
+
+      ws.onopen = () => {
+        dot.className = "status-dot dot-online";
+        text.innerText = "ONLINE";
+        text.style.color = "var(--status-online)";
+        startBtn.disabled = false;
+      };
+
+      ws.onclose = () => {
+        dot.className = "status-dot dot-offline";
+        text.innerText = "OFFLINE";
+        text.style.color = "var(--status-offline)";
+        startBtn.disabled = true;
+        setTimeout(connectWS, 3000);
+      };
+
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        const log = document.getElementById('log');
+
+        if (data.type === "joined") {
+          isSpectator = (data.role === "spectator");
+          document.getElementById('room-display').innerText = data.room;
+          document.getElementById('role-text').innerText = isSpectator ? "観戦者として入室" : "戦士として入室";
+          showScreen('screen-wait');
+        }
+        if (data.type === "start") {
+          showScreen('screen-game');
+          document.getElementById('p1-name').innerText = data.p1_name;
+          document.getElementById('p2-name').innerText = data.p2_name;
+          document.getElementById('player-ui').style.display = isSpectator ? "none" : "block";
+          document.getElementById('spec-ui').style.display = isSpectator ? "block" : "none";
+          updateHP(10, 10);
+        }
+        if (data.type === "result") {
+          updateHP(data.p1_hp, data.p2_hp);
+          log.innerHTML = `<div><span style="color:var(--text-main)">⚔️</span> ${data.p1_name}: ${translateCard(data.p1_card)} vs ${data.p2_name}: ${translateCard(data.p2_card)}</div>` + log.innerHTML;
+          document.getElementById('game-info').innerText = "次なる策を";
+        }
+        if (data.type === "finish") {
+          document.getElementById('winner-text').innerText = data.winner + " の勝利";
+          document.getElementById('finish-screen').style.display = "flex";
+        }
+        if (data.type === "info") {
+          log.innerHTML = `<div style="color:#555;">${data.message}</div>` + log.innerHTML;
+          if(document.getElementById('wait-info')) document.getElementById('wait-info').innerText = data.message;
+        }
+      };
+    }
+
+    function translateCard(card) {
+      const map = { smash: "💥", guard: "🛡️", attack: "⚔️", feint: "🃏" };
+      return map[card] || card;
+    }
+
+    connectWS();
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function joinRoom(num) {
+      myName = document.getElementById('user-name').value.trim() || "無名の戦士";
+      ws.send(JSON.stringify({ type: "join", room: "第" + num + "の間", userName: myName }));
+    }
+
+    function confirmLeave() {
+      if(confirm("この戦いから退きますか？")) { leaveRoom(); }
+    }
+
+    function leaveRoom() {
+      ws.send(JSON.stringify({ type: "leave" }));
+      document.getElementById('finish-screen').style.display = "none";
+      document.getElementById('ready-btn').disabled = false;
+      document.getElementById('ready-btn').innerText = "準備完了";
+      showScreen('screen-lobby');
+    }
+
+    function sendReady() {
+      ws.send(JSON.stringify({ type: "ready" }));
+      document.getElementById('ready-btn').disabled = true;
+      document.getElementById('ready-btn').innerText = "待機中";
+    }
+
+    function sendCard(card) {
+      ws.send(JSON.stringify({ type: "card", card }));
+      document.getElementById('game-info').innerText = "相手の動向を待っている...";
+    }
+
+    function updateHP(p1, p2) {
+      const p1Fill = document.getElementById('p1-hp-fill');
+      const p2Fill = document.getElementById('p2-hp-fill');
+      p1Fill.style.width = (p1 * 10) + "%";
+      p2Fill.style.width = (p2 * 10) + "%";
+      document.getElementById('p1-hp-text').innerText = p1;
+      document.getElementById('p2-hp-text').innerText = p2;
+      p1Fill.style.background = p1 < 4 ? "var(--hp-red)" : "var(--hp-green)";
+      p2Fill.style.background = p2 < 4 ? "var(--hp-red)" : "var(--hp-green)";
+    }
+  </script>
+</body>
+</html>
