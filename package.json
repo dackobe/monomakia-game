@@ -1,0 +1,12 @@
+{
+  "name": "monomakia",
+  "version": "1.0.0",
+  "description": "MONOMAKIA game",
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
