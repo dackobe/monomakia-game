@@ -8,98 +8,130 @@
     :root {
       --bg-color: #0d0d16; --card-bg: #16213e; --accent-color: #1a1a2e;
       --text-main: #e94560; --glow-color: rgba(233, 69, 96, 0.8);
-      --text-sub: #ffffff; --hp-green: #00ff88; --hp-red: #ff4b2b; --status-online: #00ff88;
+      --text-sub: #ffffff; --hp-green: #00ff88; --hp-red: #ff4b2b;
     }
-    /* アニメーション演出 */
-    body.dmg-flash::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.4); z-index: 9999; animation: flash-anim 0.3s forwards; pointer-events: none; }
-    body.hit-flash::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.5); z-index: 9999; animation: flash-anim 0.2s forwards; pointer-events: none; }
-    .shake-damage { animation: shake-dmg-anim 0.3s both; }
-    .shake-hit { animation: shake-hit-anim 0.2s both; }
-    @keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
-    @keyframes shake-dmg-anim { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
-    @keyframes shake-hit-anim { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
 
-    body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; }
-    .screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
-    .active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    /* 基本スタイル */
+    body { 
+      font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; 
+      background: var(--bg-color); color: var(--text-sub); overflow-x: hidden;
+    }
+    .screen { 
+      display: none; padding: 15px; min-height: 100vh; width: 100vw;
+      box-sizing: border-box; flex-direction: column; align-items: center; justify-content: flex-start;
+    }
+    .active { display: flex; }
 
-    /* 名簿窓 */
-    #roster-box { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid #444; padding: 10px; border-radius: 8px; font-size: 0.7em; text-align: left; min-width: 120px; z-index: 100; pointer-events: none; }
-    .roster-user { border-bottom: 1px solid #222; padding: 4px 0; display: flex; justify-content: space-between; gap: 10px; }
+    /* --- UIパーツ --- */
+    /* 名簿窓：右上に固定 */
+    #roster-box { 
+      position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.85); 
+      border: 1px solid var(--text-main); padding: 8px; border-radius: 5px; 
+      font-size: 0.7em; text-align: left; min-width: 100px; z-index: 200; 
+    }
+    .roster-user { border-bottom: 1px solid #333; display: flex; justify-content: space-between; gap: 8px; margin-top: 2px; }
     .is-ready { color: var(--hp-green); font-weight: bold; }
 
-    .logo-box { width: 95%; max-width: 450px; margin-bottom: 2px; }
-    .game-logo-svg { width: 100%; height: auto; filter: drop-shadow(0 0 10px var(--glow-color)); }
-    .game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; }
-    
-    .hp-section { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-    .hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; border-radius: 4px; overflow: hidden; }
-    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s; }
-    
-    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
-    .card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; }
-    .card-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    #log { width: 100%; max-width: 400px; height: 180px; overflow-y: auto; margin-top: 20px; font-size: 0.8em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); }
-    .log-hands { font-size: 1.1em; text-align: center; display: block; background: rgba(255,255,255,0.05); margin-bottom: 4px; }
-    .multiplier-notice { color: #ffa500; font-weight: bold; text-align: center; border: 1px solid #ffa500; border-radius: 4px; margin-top: 4px; }
+    /* HPセクション */
+    .battle-field { width: 100%; max-width: 450px; margin-top: 10px; }
+    .hp-section { 
+      background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; 
+      border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px;
+    }
+    .hp-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
+    .name-label { font-size: 0.75em; width: 70px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hp-bar-outer { flex-grow: 1; height: 10px; background: #111; margin: 0 10px; border-radius: 5px; overflow: hidden; }
+    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.5s ease-out; }
 
-    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-    button { font-weight: bold; cursor: pointer; }
-    .primary-btn { background: var(--text-main); color: white; border: none; padding: 12px 24px; border-radius: 4px; width: 220px; }
+    /* カード・ボタン */
+    .card-grid { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; 
+    }
+    .card-btn { 
+      min-height: 80px; background: var(--card-bg); border: 1px solid #333; 
+      color: white; border-radius: 8px; cursor: pointer; display: flex; 
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    .card-btn b { font-size: 0.9em; margin-bottom: 4px; }
+    .card-btn span { font-size: 0.6em; opacity: 0.7; }
+
+    /* ログ領域：高さを確保しつつ崩れを防ぐ */
+    #log { 
+      width: 100%; height: 160px; overflow-y: auto; background: rgba(0,0,0,0.5); 
+      margin-top: 15px; padding: 10px; font-size: 0.8em; text-align: left;
+      border-left: 3px solid var(--text-main); box-sizing: border-box;
+    }
+
+    /* エフェクト */
+    body.dmg-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255,0,0,0.3); z-index: 1000; animation: f-out 0.3s forwards; pointer-events: none; }
+    @keyframes f-out { from { opacity: 1; } to { opacity: 0; } }
+
+    /* オーバーレイ */
+    .overlay { 
+      position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
+      display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; 
+    }
+    .primary-btn { 
+      background: var(--text-main); color: white; border: none; padding: 12px 20px; 
+      border-radius: 4px; font-weight: bold; width: 200px; cursor: pointer;
+    }
+
+    /* ロゴ */
+    .logo-box { width: 90%; max-width: 380px; margin: 20px 0; }
   </style>
 </head>
 <body>
 
   <div id="roster-box" style="display: none;">
-    <div style="color:var(--text-main); font-weight:bold; margin-bottom:5px; border-bottom:1px solid #e94560;">集いし戦士</div>
+    <div style="color:var(--text-main); font-weight:bold; font-size:0.9em; border-bottom:1px solid var(--text-main);">ROOM USERS</div>
     <div id="roster-list"></div>
   </div>
 
   <div id="screen-name" class="screen active">
     <div class="logo-box">
-      <svg class="game-logo-svg" viewBox="0 0 380 70"><text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text></svg>
+      <svg viewBox="0 0 380 70" style="filter: drop-shadow(0 0 8px var(--glow-color));">
+        <text x="50%" y="50" font-family="Times New Roman" font-weight="bold" fill="#e94560" text-anchor="middle" font-size="42" letter-spacing="4">MONOMAKIA</text>
+      </svg>
     </div>
-    <div id="status-text" style="font-size: 0.7em; margin-bottom: 15px;">CONNECTING...</div>
-    <input type="text" id="user-name" placeholder="剣闘士の名を入力せよ" maxlength="10">
+    <div id="status-text" style="font-size:0.7em; color:var(--hp-green); margin-bottom:15px;">WAITING FOR SERVER...</div>
+    <input type="text" id="user-name" placeholder="剣闘士の名を入力" maxlength="10" style="padding:10px; margin-bottom:20px; text-align:center;">
     <button id="start-button" class="primary-btn" onclick="initAudioAndLobby()" disabled>闘技場へ入る</button>
   </div>
 
   <div id="screen-lobby" class="screen">
     <h2 style="color: var(--text-main);">戦場を選択</h2>
-    <div class="card-grid">
-      <button class="card-btn" onclick="joinRoom(1)">第壱の円形場</button>
-      <button class="card-btn" onclick="joinRoom(2)">第弐の円形場</button>
+    <div class="card-grid" style="max-width:300px;">
+      <button class="card-btn" onclick="joinRoom(1)">第壱の場</button>
+      <button class="card-btn" onclick="joinRoom(2)">第弐の場</button>
     </div>
   </div>
 
   <div id="screen-wait" class="screen">
     <h2 id="room-display" style="color:var(--text-main);">FIELD</h2>
-    <p style="font-size: 0.8em; color: #888;">全員の準備が整うと死闘が始まります</p>
+    <div id="wait-log-ref" style="width:100%; max-width:400px; margin-bottom:15px; font-size:0.8em; color:#888;"></div>
     <button id="ready-btn" class="primary-btn" onclick="sendReady()">再戦を望む / 準備完了</button>
-    <div id="wait-log-view" style="width:100%; max-width:400px; margin-top:20px;"></div>
-    <button class="primary-btn" style="background:#444; margin-top:20px;" onclick="location.reload()">ロビーへ戻る</button>
+    <button style="background:#444; border:none; color:white; padding:10px; margin-top:30px; border-radius:4px;" onclick="location.reload()">退室する</button>
   </div>
 
   <div id="screen-game" class="screen">
-    <div id="battle-wrap" style="width:100%; max-width:400px;">
+    <div class="battle-field">
       <div class="hp-section">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <span id="p1-name" style="font-size:0.8em;">あなた</span>
+        <div class="hp-row">
+          <span class="name-label" id="p1-name">あなた</span>
           <div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div>
-          <span id="p1-hp-text">5</span>
+          <span id="p1-hp-text" style="width:15px;">5</span>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <span id="p2-name" style="font-size:0.8em;">対戦相手</span>
+        <div class="hp-row">
+          <span class="name-label" id="p2-name">相手</span>
           <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
-          <span id="p2-hp-text">5</span>
+          <span id="p2-hp-text" style="width:15px;">5</span>
         </div>
       </div>
       <div class="card-grid">
-        <button class="card-btn" onclick="sendCard('smash')"><b>💥 強襲</b><span style="font-size:0.6em;">▶ 🛡️ 盾を崩す</span></button>
-        <button class="card-btn" onclick="sendCard('guard')"><b>🛡️ 盾守</b><span style="font-size:0.6em;">▶ ⚔️ 剣を弾く</span></button>
-        <button class="card-btn" onclick="sendCard('attack')"><b>⚔️ 斬撃</b><span style="font-size:0.6em;">▶ 🃏 避を突く</span></button>
-        <button class="card-btn" onclick="sendCard('feint')"><b>🃏 避る</b><span style="font-size:0.6em;">▶ 💥 強を躱す</span></button>
+        <button class="card-btn" onclick="sendCard('smash')"><b>💥 強襲</b><span>▶ 盾を砕く</span></button>
+        <button class="card-btn" onclick="sendCard('guard')"><b>🛡️ 守備</b><span>▶ 剣を弾く</span></button>
+        <button class="card-btn" onclick="sendCard('attack')"><b>⚔️ 斬撃</b><span>▶ 避を斬る</span></button>
+        <button class="card-btn" onclick="sendCard('feint')"><b>🃏 避る</b><span>▶ 強を躱す</span></button>
       </div>
       <div id="log"></div>
     </div>
@@ -107,23 +139,22 @@
 
   <div id="finish-screen" class="overlay">
     <h1 id="winner-text" style="color:var(--text-main);">勝利</h1>
-    <div style="display:flex; gap:10px;">
-      <button class="primary-btn" onclick="closeFinish()">戦績を確認 / 再戦</button>
-      <button class="primary-btn" style="background:#444;" onclick="location.reload()">退室</button>
-    </div>
+    <button class="primary-btn" onclick="closeFinish()">戦績を確認 / 再戦</button>
+    <button style="margin-top:20px; background:none; border:none; color:#666; text-decoration:underline;" onclick="location.reload()">ロビーへ戻る</button>
   </div>
 
   <script>
     let ws; let myName = ""; let currentHP1 = 5, currentHP2 = 5;
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSound(type) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      const now = audioCtx.currentTime;
-      if (type==='draw'){ osc.type='square'; osc.frequency.setValueAtTime(440, now); gain.gain.setValueAtTime(0.05, now); osc.start(); osc.stop(now+0.05); }
-      else if (type==='damage'){ osc.frequency.setValueAtTime(100, now); gain.gain.setValueAtTime(0.3, now); osc.start(); osc.stop(now+0.3); }
-      else if (type==='hit-success'){ osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.2, now); osc.start(); osc.stop(now+0.2); }
+    
+    function playSound(f) {
+      if(audioCtx.state==='suspended') audioCtx.resume();
+      const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.setValueAtTime(f, audioCtx.currentTime);
+      g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.2);
+      o.start(); o.stop(audioCtx.currentTime+0.2);
     }
 
     function connectWS() {
@@ -131,70 +162,55 @@
       ws = new WebSocket(`${protocol}//${location.host}`);
       ws.onopen = () => { document.getElementById('start-button').disabled = false; document.getElementById('status-text').innerText="CONNECTED"; };
       ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        if (data.type === "joined") { 
-          document.getElementById('roster-box').style.display = "block";
-          document.getElementById('room-display').innerText = data.room; 
+        const d = JSON.parse(e.data);
+        if(d.type==="joined") { 
+          document.getElementById('roster-box').style.display="block";
+          document.getElementById('room-display').innerText=d.room; 
           showScreen('screen-wait'); 
         }
-        if (data.type === "roster") {
-          document.getElementById('roster-list').innerHTML = data.users.map(u => `
+        if(d.type==="roster") {
+          document.getElementById('roster-list').innerHTML = d.users.map(u => `
             <div class="roster-user">
               <span>${u.role==='player'?'⚔️':'👁️'} ${u.name}</span>
               <span class="${u.ready?'is-ready':''}">${u.ready?'READY':''}</span>
             </div>
           `).join('');
         }
-        if (data.type === "start") {
-          document.getElementById('finish-screen').style.display = "none";
-          document.getElementById('ready-btn').disabled = false;
-          document.getElementById('ready-btn').innerText = "再戦を望む / 準備完了";
-          document.getElementById('p1-name').innerText = data.p1_name;
-          document.getElementById('p2-name').innerText = data.p2_name;
-          updateHP(5, 5); currentHP1=5; currentHP2=5;
-          document.getElementById('log').innerHTML = "<div>=== 決闘開始 ===</div>";
+        if(d.type==="start") {
+          document.getElementById('finish-screen').style.display="none";
+          document.getElementById('ready-btn').disabled=false;
+          document.getElementById('ready-btn').innerText="再戦を望む / 準備完了";
+          document.getElementById('p1-name').innerText=d.p1_name;
+          document.getElementById('p2-name').innerText=d.p2_name;
+          updateHP(5,5); currentHP1=5; currentHP2=5;
+          document.getElementById('log').innerHTML = "<div>--- 決闘開始 ---</div>";
           showScreen('screen-game');
         }
-        if (data.type === "result") {
-          const old1 = currentHP1; const old2 = currentHP2;
-          currentHP1 = data.p1_hp; currentHP2 = data.p2_hp; updateHP(currentHP1, currentHP2);
-          const iconMap = { smash: "💥", guard: "🛡️", attack: "⚔️", feint: "🃏" };
-          const flavor = { smash: "盾を粉砕！", guard: "剣を弾いた！", attack: "鋭く斬り裂いた！", feint: "死角を突いた！" };
-          const hands = `<span class="log-hands">${iconMap[data.p1_card]} VS ${iconMap[data.p2_card]}</span>`;
-          let logMsg = "";
-          if (old1 === currentHP1 && old2 === currentHP2) {
-            playSound('draw'); logMsg = `${hands}<div class="multiplier-notice">拮抗！次ターン ${data.multiplier}倍蓄積</div>`;
-          } else if (old2 > currentHP2) {
-            triggerEffect(data.p1_name===myName?'hit':'damage');
-            logMsg = `${hands}<div style="color:var(--hp-green);">【${data.p1_name}】${flavor[data.p1_card]}${old2-currentHP2>1?' [倍撃]':''}</div>`;
-          } else {
-            triggerEffect(data.p1_name===myName?'damage':'hit');
-            logMsg = `${hands}<div style="color:var(--hp-red);">【${data.p2_name}】${flavor[data.p2_card]}${old1-currentHP1>1?' [倍撃]':''}</div>`;
-          }
-          document.getElementById('log').innerHTML = `<div style="margin-bottom:8px;">${logMsg}</div>` + document.getElementById('log').innerHTML;
+        if(d.type==="result") {
+          const o1=currentHP1, o2=currentHP2; currentHP1=d.p1_hp; currentHP2=d.p2_hp;
+          updateHP(currentHP1, currentHP2);
+          const icon = {smash:"💥",guard:"🛡️",attack:"⚔️",feint:"🃏"};
+          let msg = `<div style="margin-bottom:5px;">${icon[d.p1_card]} vs ${icon[d.p2_card]} `;
+          if(o1===currentHP1 && o2===currentHP2) { playSound(400); msg += `<span style="color:orange;">[拮抗 ${d.multiplier}倍]</span>`; }
+          else { playSound(200); msg += `<span style="color:var(--hp-green);">[決着]</span>`; document.body.classList.add('dmg-flash'); setTimeout(()=>document.body.classList.remove('dmg-flash'),300); }
+          document.getElementById('log').innerHTML = msg + "</div>" + document.getElementById('log').innerHTML;
         }
-        if (data.type === "finish") {
-          document.getElementById('winner-text').innerText = data.winner + " の勝利！";
-          document.getElementById('finish-screen').style.display = "flex";
+        if(d.type==="finish") {
+          document.getElementById('winner-text').innerText = d.winner + " の勝利！";
+          document.getElementById('finish-screen').style.display="flex";
         }
       };
     }
-    function initAudioAndLobby() { if (audioCtx.state === 'suspended') audioCtx.resume(); myName = document.getElementById('user-name').value || "剣闘士"; showScreen('screen-lobby'); }
-    function joinRoom(n) { ws.send(JSON.stringify({ type: "join", room: "第"+n+"の円形場", userName: myName })); }
-    function sendReady() { ws.send(JSON.stringify({ type: "ready" })); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "待機中..."; }
-    function sendCard(c) { ws.send(JSON.stringify({ type: "card", card: c })); }
-    function updateHP(p1, p2) { document.getElementById('p1-hp-fill').style.width=(p1*20)+"%"; document.getElementById('p2-hp-fill').style.width=(p2*20)+"%"; document.getElementById('p1-hp-text').innerText=p1; document.getElementById('p2-hp-text').innerText=p2; }
-    function triggerEffect(mode) {
-      const wrap = document.getElementById('battle-wrap'); document.body.classList.remove('dmg-flash', 'hit-flash'); wrap.classList.remove('shake-damage', 'shake-hit');
-      void document.body.offsetWidth;
-      if (mode === 'damage') { document.body.classList.add('dmg-flash'); wrap.classList.add('shake-damage'); playSound('damage'); }
-      else { document.body.classList.add('hit-flash'); wrap.classList.add('shake-hit'); playSound('hit-success'); }
-    }
-    function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+    function initAudioAndLobby() { audioCtx.resume(); myName=document.getElementById('user-name').value||"剣闘士"; showScreen('screen-lobby'); }
+    function joinRoom(n) { ws.send(JSON.stringify({type:"join", room:"第"+n+"の場", userName:myName})); }
+    function sendReady() { ws.send(JSON.stringify({type:"ready"})); document.getElementById('ready-btn').disabled=true; document.getElementById('ready-btn').innerText="待機中..."; }
+    function sendCard(c) { ws.send(JSON.stringify({type:"card", card:c})); }
+    function updateHP(a,b) { document.getElementById('p1-hp-fill').style.width=(a*20)+"%"; document.getElementById('p2-hp-fill').style.width=(b*20)+"%"; document.getElementById('p1-hp-text').innerText=a; document.getElementById('p2-hp-text').innerText=b; }
+    function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
     function closeFinish() { 
-      const logData = document.getElementById('log').innerHTML;
-      document.getElementById('wait-log-view').innerHTML = "<h3>前戦の記録</h3>" + logData;
-      document.getElementById('finish-screen').style.display = "none"; 
+      document.getElementById('wait-log-ref').innerHTML = "前戦の記録保持中";
+      document.getElementById('finish-screen').style.display="none"; 
       showScreen('screen-wait'); 
     }
     connectWS();
