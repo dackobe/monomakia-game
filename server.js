@@ -26,18 +26,14 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(msg.toString());
 
-      // --- 入室処理 ---
+      // ルーム入室
       if (data.type === "join") {
         const roomId = data.room;
-        ws.userName = data.userName || "名無し";
+        ws.userName = data.userName || "名無しの戦士";
         ws.roomId = roomId;
         
         if (!rooms[roomId]) {
-          rooms[roomId] = { 
-            players: [], 
-            spectators: [], 
-            gameActive: false // 現在対戦中かどうかのフラグ
-          };
+          rooms[roomId] = { players: [], spectators: [], gameActive: false };
         }
 
         const room = rooms[roomId];
@@ -46,17 +42,16 @@ wss.on('connection', (ws) => {
         if (room.players.length < 2) {
           ws.isSpectator = false;
           ws.isReady = false;
-          ws.hp = 10;
+          ws.hp = 5; 
           room.players.push(ws);
           ws.send(JSON.stringify({ type: "joined", room: roomId, role: "player" }));
-          broadcast(roomId, { type: "info", message: `👤 【${ws.userName}】が参戦しました` });
+          broadcast(roomId, { type: "info", message: `👤 【${ws.userName}】が参戦した` });
         } else {
           ws.isSpectator = true;
           room.spectators.push(ws);
           ws.send(JSON.stringify({ type: "joined", room: roomId, role: "spectator" }));
           
-          // 【重要】観戦者が途中入室した場合、既に試合中なら現在の情報を送る
-          if (room.gameActive && room.players.length === 2) {
+          if (room.gameActive) {
             ws.send(JSON.stringify({
               type: "start",
               p1_name: room.players[0].userName,
@@ -69,34 +64,28 @@ wss.on('connection', (ws) => {
         }
       }
 
-      // --- 準備完了 ---
+      // 準備完了
       if (data.type === "ready" && !ws.isSpectator) {
         ws.isReady = true;
-        ws.hp = 10;
+        ws.hp = 5;
         const room = rooms[ws.roomId];
-        if (!room) return;
-
         broadcast(ws.roomId, { type: "info", message: `✅ 【${ws.userName}】準備完了` });
 
         const readyPlayers = room.players.filter(p => p.isReady);
         if (readyPlayers.length === 2) {
-          room.gameActive = true; // 対戦フラグON
-          const p1 = room.players[0];
-          const p2 = room.players[1];
+          room.gameActive = true;
+          const [p1, p2] = room.players;
           p1.opponent = p2;
           p2.opponent = p1;
-          
           broadcast(ws.roomId, { 
             type: "start", 
-            p1_name: p1.userName, 
-            p2_name: p2.userName,
-            p1_hp: 10,
-            p2_hp: 10
+            p1_name: p1.userName, p2_name: p2.userName,
+            p1_hp: 5, p2_hp: 5
           });
         }
       }
 
-      // --- カード選択（相性判定とダメージログ） ---
+      // カード提出
       if (data.type === "card" && !ws.isSpectator) {
         const room = rooms[ws.roomId];
         if (!ws.opponent || ws.hp <= 0 || ws.opponent.hp <= 0) return;
@@ -104,38 +93,27 @@ wss.on('connection', (ws) => {
 
         if (ws.opponent.selectedCard) {
           const res = judge(ws.selectedCard, ws.opponent.selectedCard);
-          
-          // ダメージ適用
-          if (res.self === 1) ws.opponent.hp -= 1;
-          if (res.opp === 1) ws.hp -= 1;
+          if (res.p1_dmg) ws.opponent.hp -= 1;
+          if (res.p2_dmg) ws.hp -= 1;
 
-          // 全員（観戦者含む）に結果を送信
           broadcast(ws.roomId, { 
             type: "result", 
-            p1_name: room.players[0].userName, 
-            p1_card: room.players[0].selectedCard, 
-            p1_hp: room.players[0].hp,
-            p2_name: room.players[1].userName, 
-            p2_card: room.players[1].selectedCard, 
-            p2_hp: room.players[1].hp
+            p1_name: room.players[0].userName, p1_card: room.players[0].selectedCard, p1_hp: room.players[0].hp,
+            p2_name: room.players[1].userName, p2_card: room.players[1].selectedCard, p2_hp: room.players[1].hp
           });
 
           if (ws.hp <= 0 || ws.opponent.hp <= 0) {
             const winner = ws.hp > 0 ? ws.userName : ws.opponent.userName;
             broadcast(ws.roomId, { type: "finish", winner: winner });
-            room.gameActive = false; // 対戦終了
+            room.gameActive = false;
             room_reset(ws.roomId);
           }
-          
-          // カードリセット
           room.players.forEach(p => p.selectedCard = null);
         }
       }
 
-      if (data.type === "leave") {
-        handleDisconnect(ws);
-        ws.send(JSON.stringify({ type: "left_success" }));
-      }
+      if (data.type === "leave") handleDisconnect(ws);
+
     } catch (e) { console.error(e); }
   });
 
@@ -144,64 +122,34 @@ wss.on('connection', (ws) => {
 
 function room_reset(roomId) {
   const room = rooms[roomId];
-  if (room) {
-    room.players.forEach(p => {
-      p.isReady = false;
-      p.selectedCard = null;
-      p.opponent = null;
-    });
-  }
+  if (room) room.players.forEach(p => { p.isReady = false; p.selectedCard = null; p.opponent = null; });
 }
 
 function handleDisconnect(ws) {
-  const roomId = ws.roomId;
-  if (roomId && rooms[roomId]) {
-    const room = rooms[roomId];
+  const room = rooms[ws.roomId];
+  if (room) {
     room.players = room.players.filter(p => p !== ws);
     room.spectators = room.spectators.filter(p => p !== ws);
-    
     if (ws.opponent) {
-      const opp = ws.opponent;
-      opp.opponent = null;
-      opp.isReady = false;
-      room.gameActive = false;
-      opp.send(JSON.stringify({ type: "info", message: "相手との通信が途絶えました。" }));
+      ws.opponent.send(JSON.stringify({ type: "info", message: "相手が戦場を離脱しました" }));
+      room_reset(ws.roomId);
     }
   }
-  ws.roomId = null;
-  ws.opponent = null;
 }
 
 function broadcast(roomId, data) {
   const room = rooms[roomId];
   if (!room) return;
   const msg = JSON.stringify(data);
-  // プレイヤーと観戦者全員に送信
-  const allClients = [...room.players, ...room.spectators];
-  allClients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) client.send(msg);
-  });
+  [...room.players, ...room.spectators].forEach(c => { if(c.readyState === WebSocket.OPEN) c.send(msg); });
 }
 
-/**
- * 💥(smash) -> 🛡️(guard)
- * 🛡️(guard) -> ⚔️(attack)
- * ⚔️(attack) -> 🃏(feint)
- * 🃏(feint) -> 💥(smash)
- */
 function judge(a, b) {
-  const winMap = {
-    smash: "guard",
-    guard: "attack",
-    attack: "feint",
-    feint: "smash"
-  };
-  if (winMap[a] === b) return { self: 1, opp: 0 }; // 自分が勝ち
-  if (winMap[b] === a) return { self: 0, opp: 1 }; // 相手が勝ち
-  return { self: 0, opp: 0 }; // その他は引き分け
+  const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
+  if (a === b) return { p1_dmg: 0, p2_dmg: 0 };
+  if (winMap[a] === b) return { p1_dmg: 1, p2_dmg: 0 };
+  return { p1_dmg: 0, p2_dmg: 1 };
 }
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`MONOMAKIA Server running on port ${PORT}`);
-});
+server.listen(PORT, '0.0.0.0', () => console.log(`Server: http://localhost:${PORT}`));
