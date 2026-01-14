@@ -1,575 +1,203 @@
 <!DOCTYPE html>
-
 <html lang="ja">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
   <title>MONOMAKIA - 剣闘士の決闘</title>
-
   <style>
-
     :root {
-
-      --bg-color: #0d0d16;
-
-      --card-bg: #16213e;
-
-      --accent-color: #1a1a2e;
-
-      --text-main: #e94560;
-
-      --glow-color: rgba(233, 69, 96, 0.8);
-
-      --text-sub: #ffffff;
-
-      --hp-green: #00ff88;
-
-      --hp-red: #ff4b2b;
-
-      --status-online: #00ff88;
-
+      --bg-color: #0d0d16; --card-bg: #16213e; --accent-color: #1a1a2e;
+      --text-main: #e94560; --glow-color: rgba(233, 69, 96, 0.8);
+      --text-sub: #ffffff; --hp-green: #00ff88; --hp-red: #ff4b2b; --status-online: #00ff88;
     }
-
-    body.dmg-flash::after {
-
-      content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-
-      background: rgba(255, 0, 0, 0.4); z-index: 9999; pointer-events: none;
-
-      animation: flash-anim 0.3s ease-out forwards;
-
-    }
-
-    .shake-damage { animation: shake-dmg-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-
-    body.hit-flash::after {
-
-      content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-
-      background: rgba(255, 255, 255, 0.5); z-index: 9999; pointer-events: none;
-
-      animation: flash-anim 0.2s ease-out forwards;
-
-    }
-
-    .shake-hit { animation: shake-hit-anim 0.2s ease-out both; }
-
+    /* アニメーション演出 */
+    body.dmg-flash::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.4); z-index: 9999; animation: flash-anim 0.3s forwards; pointer-events: none; }
+    body.hit-flash::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.5); z-index: 9999; animation: flash-anim 0.2s forwards; pointer-events: none; }
+    .shake-damage { animation: shake-dmg-anim 0.3s both; }
+    .shake-hit { animation: shake-hit-anim 0.2s both; }
     @keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
-
-    @keyframes shake-dmg-anim {
-
-      10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); }
-
-      30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); }
-
-    }
-
+    @keyframes shake-dmg-anim { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
     @keyframes shake-hit-anim { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
 
-
-
-    body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-
+    body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; }
     .screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
-
     .active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
+    /* 名簿窓 */
+    #roster-box { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.85); border: 1px solid #444; padding: 10px; border-radius: 8px; font-size: 0.7em; text-align: left; min-width: 120px; z-index: 100; pointer-events: none; }
+    .roster-user { border-bottom: 1px solid #222; padding: 4px 0; display: flex; justify-content: space-between; gap: 10px; }
+    .is-ready { color: var(--hp-green); font-weight: bold; }
+
     .logo-box { width: 95%; max-width: 450px; margin-bottom: 2px; }
-
     .game-logo-svg { width: 100%; height: auto; filter: drop-shadow(0 0 10px var(--glow-color)); }
-
     .game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; }
-
-    .connection-panel { background: rgba(255,255,255,0.03); padding: 8px 15px; border-radius: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 8px; font-size: 0.7em; }
-
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
-
-    .dot-online { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
-
-    input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #333; width: 80%; max-width: 260px; margin-bottom: 15px; background: #000; color: white; text-align: center; }
-
-    button { padding: 12px 24px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--accent-color); color: white; font-weight: bold; transition: 0.2s; }
-
-    button:disabled { background: #333; color: #888; cursor: not-allowed; border-color: #444; }
-
-    .primary-btn { background: var(--text-main); border: none; width: 220px; font-size: 1.1em; }
-
-    .exit-link-btn { background: none; border: none; color: #666; font-size: 0.8em; margin-top: 25px; text-decoration: underline; }
-
-
-
-    .battle-field { width: 100%; max-width: 500px; }
-
-    .hp-section { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-
-    .player-row { display: flex; align-items: center; justify-content: space-between; }
-
-    .hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; overflow: hidden; border-radius: 4px; }
-
-    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
-
-
-
-    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-
-    .card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; position: relative; }
-
-    .card-btn:active:not(:disabled) { background: #1a1a2e; transform: scale(0.98); }
-
-    .card-btn b { font-size: 1.0rem; margin-bottom: 6px; display: block; }
-
-    .advantage-info { font-size: 0.65rem; color: #888; display: block; opacity: 0.8; }
-
-
-
-    #log { width: 100%; height: 200px; overflow-y: auto; margin-top: 20px; font-size: 0.85em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); box-sizing: border-box; color: #ccc; line-height: 1.6; }
-
-    .log-entry { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-
-    .log-hands { font-size: 1.1em; letter-spacing: 2px; display: block; margin-bottom: 4px; text-align: center; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 0; }
-
-    .multiplier-notice { color: #ffa500; font-weight: bold; text-align: center; display: block; margin-top: 4px; border: 1px solid #ffa500; border-radius: 4px; font-size: 0.8em; }
-
-
+    
+    .hp-section { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    .hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; border-radius: 4px; overflow: hidden; }
+    .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s; }
+    
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
+    .card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; }
+    .card-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    #log { width: 100%; max-width: 400px; height: 180px; overflow-y: auto; margin-top: 20px; font-size: 0.8em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); }
+    .log-hands { font-size: 1.1em; text-align: center; display: block; background: rgba(255,255,255,0.05); margin-bottom: 4px; }
+    .multiplier-notice { color: #ffa500; font-weight: bold; text-align: center; border: 1px solid #ffa500; border-radius: 4px; margin-top: 4px; }
 
     .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-
+    button { font-weight: bold; cursor: pointer; }
+    .primary-btn { background: var(--text-main); color: white; border: none; padding: 12px 24px; border-radius: 4px; width: 220px; }
   </style>
-
 </head>
-
 <body>
 
-
+  <div id="roster-box" style="display: none;">
+    <div style="color:var(--text-main); font-weight:bold; margin-bottom:5px; border-bottom:1px solid #e94560;">集いし戦士</div>
+    <div id="roster-list"></div>
+  </div>
 
   <div id="screen-name" class="screen active">
-
     <div class="logo-box">
-
-      <svg class="game-logo-svg" viewBox="0 0 380 70">
-
-        <text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text>
-
-      </svg>
-
+      <svg class="game-logo-svg" viewBox="0 0 380 70"><text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text></svg>
     </div>
-
-    <p style="letter-spacing: 5px; color: var(--text-main); opacity: 0.8;">闘技場の死闘</p>
-
-    <div class="connection-panel"><div id="status-dot" class="status-dot"></div><span id="status-text">CONNECTING...</span></div>
-
+    <div id="status-text" style="font-size: 0.7em; margin-bottom: 15px;">CONNECTING...</div>
     <input type="text" id="user-name" placeholder="剣闘士の名を入力せよ" maxlength="10">
-
     <button id="start-button" class="primary-btn" onclick="initAudioAndLobby()" disabled>闘技場へ入る</button>
-
   </div>
-
-
 
   <div id="screen-lobby" class="screen">
-
     <h2 style="color: var(--text-main);">戦場を選択</h2>
-
-    <div class="room-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 400px;">
-
+    <div class="card-grid">
       <button class="card-btn" onclick="joinRoom(1)">第壱の円形場</button>
-
       <button class="card-btn" onclick="joinRoom(2)">第弐の円形場</button>
-
-      <button class="card-btn" onclick="joinRoom(3)">第参の円形場</button>
-
-      <button class="card-btn" onclick="joinRoom(4)">第四の円形場</button>
-
     </div>
-
   </div>
-
-
 
   <div id="screen-wait" class="screen">
-
     <h2 id="room-display" style="color:var(--text-main);">FIELD</h2>
-
-    <button id="ready-btn" class="primary-btn" onclick="sendReady()">準備完了</button>
-
-    <p id="wait-info" style="margin-top:20px; color:var(--status-online); font-size: 0.8em;"></p>
-
-    <button class="exit-link-btn" onclick="leaveRoom()">戦列を離れる</button>
-
+    <p style="font-size: 0.8em; color: #888;">全員の準備が整うと死闘が始まります</p>
+    <button id="ready-btn" class="primary-btn" onclick="sendReady()">再戦を望む / 準備完了</button>
+    <div id="wait-log-view" style="width:100%; max-width:400px; margin-top:20px;"></div>
+    <button class="primary-btn" style="background:#444; margin-top:20px;" onclick="location.reload()">ロビーへ戻る</button>
   </div>
-
-
 
   <div id="screen-game" class="screen">
-
-    <div id="battle-wrap" class="battle-field">
-
+    <div id="battle-wrap" style="width:100%; max-width:400px;">
       <div class="hp-section">
-
-        <div class="player-row">
-
-          <span style="font-size:0.8em; width:80px; text-align:left;" id="p1-display-name">あなた</span>
-
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span id="p1-name" style="font-size:0.8em;">あなた</span>
           <div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div>
-
-          <span id="p1-hp-text" style="width:20px;">5</span>
-
+          <span id="p1-hp-text">5</span>
         </div>
-
-        <div class="player-row">
-
-          <span style="font-size:0.8em; width:80px; text-align:left;" id="p2-display-name">対戦相手</span>
-
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="p2-name" style="font-size:0.8em;">対戦相手</span>
           <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
-
-          <span id="p2-hp-text" style="width:20px;">5</span>
-
+          <span id="p2-hp-text">5</span>
         </div>
-
       </div>
-
-      <div id="player-ui">
-
-        <p id="game-info" style="font-size: 0.8em; margin-bottom: 15px; color: #888;">機を伺え</p>
-
-        <div class="card-grid">
-
-          <button class="card-btn" onclick="sendCard('smash')">
-
-            <b>💥 強襲</b>
-
-            <span class="advantage-info">▶ 🛡️ 盾を崩す</span>
-
-          </button>
-
-          <button class="card-btn" onclick="sendCard('guard')">
-
-            <b>🛡️ 盾で守る</b>
-
-            <span class="advantage-info">▶ ⚔️ 剣を弾く</span>
-
-          </button>
-
-          <button class="card-btn" onclick="sendCard('attack')">
-
-            <b>⚔️ 剣で切り裂く</b>
-
-            <span class="advantage-info">▶ 🃏 素早く斬る</span>
-
-          </button>
-
-          <button class="card-btn" onclick="sendCard('feint')">
-
-            <b>🃏 避ける</b>
-
-            <span class="advantage-info">▶ 💥 大振りを避ける</span>
-
-          </button>
-
-        </div>
-
+      <div class="card-grid">
+        <button class="card-btn" onclick="sendCard('smash')"><b>💥 強襲</b><span style="font-size:0.6em;">▶ 🛡️ 盾を崩す</span></button>
+        <button class="card-btn" onclick="sendCard('guard')"><b>🛡️ 盾守</b><span style="font-size:0.6em;">▶ ⚔️ 剣を弾く</span></button>
+        <button class="card-btn" onclick="sendCard('attack')"><b>⚔️ 斬撃</b><span style="font-size:0.6em;">▶ 🃏 避を突く</span></button>
+        <button class="card-btn" onclick="sendCard('feint')"><b>🃏 避る</b><span style="font-size:0.6em;">▶ 💥 強を躱す</span></button>
       </div>
-
       <div id="log"></div>
-
     </div>
-
   </div>
-
-
 
   <div id="finish-screen" class="overlay">
-
-    <h1 id="winner-text" style="color:var(--text-main); font-size: 2em;">勝利</h1>
-
-    <button class="primary-btn" onclick="leaveRoom()">ロビーへ戻る</button>
-
+    <h1 id="winner-text" style="color:var(--text-main);">勝利</h1>
+    <div style="display:flex; gap:10px;">
+      <button class="primary-btn" onclick="closeFinish()">戦績を確認 / 再戦</button>
+      <button class="primary-btn" style="background:#444;" onclick="location.reload()">退室</button>
+    </div>
   </div>
 
-
-
   <script>
-
-    let ws;
-
-    let myName = "";
-
-    let currentHP1 = 5, currentHP2 = 5;
-
-
-
+    let ws; let myName = ""; let currentHP1 = 5, currentHP2 = 5;
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
     function playSound(type) {
-
       if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      const osc = audioCtx.createOscillator();
-
-      const gain = audioCtx.createGain();
-
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
-
       const now = audioCtx.currentTime;
-
-      if (type === 'select') {
-
-        osc.frequency.setValueAtTime(500, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
-
-        gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.1);
-
-        osc.start(); osc.stop(now + 0.1);
-
-      } else if (type === 'damage') { 
-
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now);
-
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
-
-        gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
-
-        osc.start(); osc.stop(now + 0.3);
-
-      } else if (type === 'hit-success') { 
-
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(900, now);
-
-        osc.frequency.exponentialRampToValueAtTime(300, now + 0.2);
-
-        gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
-
-        osc.start(); osc.stop(now + 0.2);
-
-      } else if (type === 'draw') {
-
-        osc.type = 'square'; osc.frequency.setValueAtTime(600, now);
-
-        gain.gain.setValueAtTime(0.05, now); osc.start(); osc.stop(now + 0.05);
-
-      } else if (type === 'finish') {
-
-        osc.frequency.setValueAtTime(300, now); gain.gain.setValueAtTime(0.2, now);
-
-        gain.gain.linearRampToValueAtTime(0, now + 1); osc.start(); osc.stop(now + 1);
-
-      }
-
+      if (type==='draw'){ osc.type='square'; osc.frequency.setValueAtTime(440, now); gain.gain.setValueAtTime(0.05, now); osc.start(); osc.stop(now+0.05); }
+      else if (type==='damage'){ osc.frequency.setValueAtTime(100, now); gain.gain.setValueAtTime(0.3, now); osc.start(); osc.stop(now+0.3); }
+      else if (type==='hit-success'){ osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.2, now); osc.start(); osc.stop(now+0.2); }
     }
-
-
-
-    function initAudioAndLobby() { if (audioCtx.state === 'suspended') audioCtx.resume(); playSound('select'); showScreen('screen-lobby'); }
-
-
 
     function connectWS() {
-
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-
       ws = new WebSocket(`${protocol}//${location.host}`);
-
-      ws.onopen = () => { 
-
-        document.getElementById('status-dot').classList.add('dot-online');
-
-        document.getElementById('status-text').innerText = "ONLINE";
-
-        document.getElementById('start-button').disabled = false;
-
-      };
-
-
-
+      ws.onopen = () => { document.getElementById('start-button').disabled = false; document.getElementById('status-text').innerText="CONNECTED"; };
       ws.onmessage = (e) => {
-
         const data = JSON.parse(e.data);
-
-        const log = document.getElementById('log');
-
-
-
-        if (data.type === "joined") {
-
-          document.getElementById('room-display').innerText = data.room;
-
-          showScreen('screen-wait');
-
+        if (data.type === "joined") { 
+          document.getElementById('roster-box').style.display = "block";
+          document.getElementById('room-display').innerText = data.room; 
+          showScreen('screen-wait'); 
         }
-
-
-
+        if (data.type === "roster") {
+          document.getElementById('roster-list').innerHTML = data.users.map(u => `
+            <div class="roster-user">
+              <span>${u.role==='player'?'⚔️':'👁️'} ${u.name}</span>
+              <span class="${u.ready?'is-ready':''}">${u.ready?'READY':''}</span>
+            </div>
+          `).join('');
+        }
         if (data.type === "start") {
-
+          document.getElementById('finish-screen').style.display = "none";
+          document.getElementById('ready-btn').disabled = false;
+          document.getElementById('ready-btn').innerText = "再戦を望む / 準備完了";
+          document.getElementById('p1-name').innerText = data.p1_name;
+          document.getElementById('p2-name').innerText = data.p2_name;
+          updateHP(5, 5); currentHP1=5; currentHP2=5;
+          document.getElementById('log').innerHTML = "<div>=== 決闘開始 ===</div>";
           showScreen('screen-game');
-
-          document.getElementById('p1-display-name').innerText = data.p1_name;
-
-          document.getElementById('p2-display-name').innerText = data.p2_name;
-
-          currentHP1 = 5; currentHP2 = 5;
-
-          updateHP(5, 5);
-
-          log.innerHTML = `<div style="color:var(--hp-green); text-align:center;">=== 決闘開始の鐘が鳴る ===</div>`;
-
         }
-
-
-
         if (data.type === "result") {
-
-          const isMyP1 = (data.p1_name === myName);
-
-          const oldHP1 = currentHP1; const oldHP2 = currentHP2;
-
-          
-
-          currentHP1 = data.p1_hp; currentHP2 = data.p2_hp;
-
-          updateHP(currentHP1, currentHP2);
-
-
-
-          const myOldHP = isMyP1 ? oldHP1 : oldHP2;
-
-          const myNewHP = isMyP1 ? currentHP1 : currentHP2;
-
-          const oppOldHP = isMyP1 ? oldHP2 : oldHP1;
-
-          const oppNewHP = isMyP1 ? currentHP2 : currentHP1;
-
-
-
-          if (myNewHP < myOldHP) triggerEffect('damage');
-
-          else if (oppNewHP < oppOldHP) triggerEffect('hit');
-
-          else playSound('draw');
-
-
-
+          const old1 = currentHP1; const old2 = currentHP2;
+          currentHP1 = data.p1_hp; currentHP2 = data.p2_hp; updateHP(currentHP1, currentHP2);
           const iconMap = { smash: "💥", guard: "🛡️", attack: "⚔️", feint: "🃏" };
-
-          const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
-
-          const flavorTexts = {
-
-            smash: "凄まじい盾打ちが、相手の構えを粉砕した！",
-
-            guard: "鉄壁の構えが、相手の斬撃を完璧に弾き返した！",
-
-            attack: "無駄のない一閃が、機先を制して深く切り裂いた！",
-
-            feint: "強襲の隙を見逃さず、死角から追い打ちを食らわせた！"
-
-          };
-
-
-
+          const flavor = { smash: "盾を粉砕！", guard: "剣を弾いた！", attack: "鋭く斬り裂いた！", feint: "死角を突いた！" };
           const hands = `<span class="log-hands">${iconMap[data.p1_card]} VS ${iconMap[data.p2_card]}</span>`;
-
           let logMsg = "";
-
-
-
-          if (data.p1_card === data.p2_card) {
-
-            logMsg = `${hands}<div class="multiplier-notice">拮抗！次ターンのダメージ ${data.multiplier}倍</div>`;
-
-          } else if (winMap[data.p1_card] === data.p2_card) {
-
-            const dmg = oldHP2 - currentHP2;
-
-            const dmgText = dmg > 1 ? `<b style="color:yellow; font-size:1.2em;"> [${dmg}倍撃]</b>` : "";
-
-            logMsg = `${hands}<div class="log-msg" style="color:var(--hp-green);">🔥【${data.p1_name}】${flavorTexts[data.p1_card]}${dmgText}</div>`;
-
+          if (old1 === currentHP1 && old2 === currentHP2) {
+            playSound('draw'); logMsg = `${hands}<div class="multiplier-notice">拮抗！次ターン ${data.multiplier}倍蓄積</div>`;
+          } else if (old2 > currentHP2) {
+            triggerEffect(data.p1_name===myName?'hit':'damage');
+            logMsg = `${hands}<div style="color:var(--hp-green);">【${data.p1_name}】${flavor[data.p1_card]}${old2-currentHP2>1?' [倍撃]':''}</div>`;
           } else {
-
-            const dmg = oldHP1 - currentHP1;
-
-            const dmgText = dmg > 1 ? `<b style="color:yellow; font-size:1.2em;"> [${dmg}倍撃]</b>` : "";
-
-            logMsg = `${hands}<div class="log-msg" style="color:var(--hp-red);">💀【${data.p2_name}】${flavorTexts[data.p2_card]}${dmgText}</div>`;
-
+            triggerEffect(data.p1_name===myName?'damage':'hit');
+            logMsg = `${hands}<div style="color:var(--hp-red);">【${data.p2_name}】${flavor[data.p2_card]}${old1-currentHP1>1?' [倍撃]':''}</div>`;
           }
-
-          log.innerHTML = `<div class="log-entry">${logMsg}</div>` + log.innerHTML;
-
-          document.getElementById('game-info').innerText = "機を伺え";
-
+          document.getElementById('log').innerHTML = `<div style="margin-bottom:8px;">${logMsg}</div>` + document.getElementById('log').innerHTML;
         }
-
-
-
         if (data.type === "finish") {
-
-          playSound('finish');
-
-          document.getElementById('winner-text').innerText = data.winner + " が勝鬨を上げた";
-
+          document.getElementById('winner-text').innerText = data.winner + " の勝利！";
           document.getElementById('finish-screen').style.display = "flex";
-
         }
-
       };
-
     }
-
-
-
+    function initAudioAndLobby() { if (audioCtx.state === 'suspended') audioCtx.resume(); myName = document.getElementById('user-name').value || "剣闘士"; showScreen('screen-lobby'); }
+    function joinRoom(n) { ws.send(JSON.stringify({ type: "join", room: "第"+n+"の円形場", userName: myName })); }
+    function sendReady() { ws.send(JSON.stringify({ type: "ready" })); document.getElementById('ready-btn').disabled = true; document.getElementById('ready-btn').innerText = "待機中..."; }
+    function sendCard(c) { ws.send(JSON.stringify({ type: "card", card: c })); }
+    function updateHP(p1, p2) { document.getElementById('p1-hp-fill').style.width=(p1*20)+"%"; document.getElementById('p2-hp-fill').style.width=(p2*20)+"%"; document.getElementById('p1-hp-text').innerText=p1; document.getElementById('p2-hp-text').innerText=p2; }
     function triggerEffect(mode) {
-
-      const wrap = document.getElementById('battle-wrap');
-
-      document.body.classList.remove('dmg-flash', 'hit-flash');
-
-      wrap.classList.remove('shake-damage', 'shake-hit');
-
+      const wrap = document.getElementById('battle-wrap'); document.body.classList.remove('dmg-flash', 'hit-flash'); wrap.classList.remove('shake-damage', 'shake-hit');
       void document.body.offsetWidth;
-
       if (mode === 'damage') { document.body.classList.add('dmg-flash'); wrap.classList.add('shake-damage'); playSound('damage'); }
-
-      else if (mode === 'hit') { document.body.classList.add('hit-flash'); wrap.classList.add('shake-hit'); playSound('hit-success'); }
-
+      else { document.body.classList.add('hit-flash'); wrap.classList.add('shake-hit'); playSound('hit-success'); }
     }
-
-
-
-    function updateHP(p1, p2) {
-
-      document.getElementById('p1-hp-fill').style.width = (p1 * 20) + "%";
-
-      document.getElementById('p2-hp-fill').style.width = (p2 * 20) + "%";
-
-      document.getElementById('p1-hp-text').innerText = p1;
-
-      document.getElementById('p2-hp-text').innerText = p2;
-
-    }
-
-
-
     function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-
-    function joinRoom(n) { playSound('select'); myName = document.getElementById('user-name').value.trim() || "剣闘士"; ws.send(JSON.stringify({ type: "join", room: "第" + n + "の円形場", userName: myName })); }
-
-    function sendReady() { playSound('select'); ws.send(JSON.stringify({ type: "ready" })); const btn = document.getElementById('ready-btn'); btn.disabled = true; btn.innerText = "出陣待機中..."; }
-
-    function sendCard(c) { playSound('select'); ws.send(JSON.stringify({ type: "card", card: c })); document.getElementById('game-info').innerText = "相手を注視している..."; }
-
-    function leaveRoom() { ws.send(JSON.stringify({ type: "leave" })); location.reload(); }
-
-
-
+    function closeFinish() { 
+      const logData = document.getElementById('log').innerHTML;
+      document.getElementById('wait-log-view').innerHTML = "<h3>前戦の記録</h3>" + logData;
+      document.getElementById('finish-screen').style.display = "none"; 
+      showScreen('screen-wait'); 
+    }
     connectWS();
-
   </script>
-
 </body>
-
 </html>
