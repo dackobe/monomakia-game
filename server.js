@@ -26,7 +26,6 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(msg.toString());
 
-      // ルーム入室
       if (data.type === "join") {
         const roomId = data.room;
         ws.userName = data.userName || "名無しの戦士";
@@ -50,7 +49,6 @@ wss.on('connection', (ws) => {
           ws.isSpectator = true;
           room.spectators.push(ws);
           ws.send(JSON.stringify({ type: "joined", room: roomId, role: "spectator" }));
-          
           if (room.gameActive) {
             ws.send(JSON.stringify({
               type: "start",
@@ -64,12 +62,11 @@ wss.on('connection', (ws) => {
         }
       }
 
-      // 準備完了
       if (data.type === "ready" && !ws.isSpectator) {
         ws.isReady = true;
         ws.hp = 5;
         const room = rooms[ws.roomId];
-        broadcast(ws.roomId, { type: "info", message: `✅ 【${ws.userName}】準備完了` });
+        // broadcast(ws.roomId, { type: "info", message: `✅ 【${ws.userName}】準備完了` });
 
         const readyPlayers = room.players.filter(p => p.isReady);
         if (readyPlayers.length === 2) {
@@ -85,16 +82,17 @@ wss.on('connection', (ws) => {
         }
       }
 
-      // カード提出
       if (data.type === "card" && !ws.isSpectator) {
         const room = rooms[ws.roomId];
         if (!ws.opponent || ws.hp <= 0 || ws.opponent.hp <= 0) return;
         ws.selectedCard = data.card;
 
         if (ws.opponent.selectedCard) {
+          // ここで勝敗判定を実行
           const res = judge(ws.selectedCard, ws.opponent.selectedCard);
-          if (res.p1_dmg) ws.opponent.hp -= 1;
-          if (res.p2_dmg) ws.hp -= 1;
+          
+          if (res.p1_dmg) ws.opponent.hp -= 1; // 自分が勝てば相手にダメージ
+          if (res.p2_dmg) ws.hp -= 1;          // 相手が勝てば自分にダメージ
 
           broadcast(ws.roomId, { 
             type: "result", 
@@ -144,11 +142,19 @@ function broadcast(roomId, data) {
   [...room.players, ...room.spectators].forEach(c => { if(c.readyState === WebSocket.OPEN) c.send(msg); });
 }
 
+// ■ 勝敗判定ロジック（厳密化）
 function judge(a, b) {
-  const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
-  if (a === b) return { p1_dmg: 0, p2_dmg: 0 };
-  if (winMap[a] === b) return { p1_dmg: 1, p2_dmg: 0 };
-  return { p1_dmg: 0, p2_dmg: 1 };
+  // キーが勝者、値が敗者
+  const winMap = { 
+    smash: "guard",   // スマッシュ VS ガード → スマッシュ勝ち
+    guard: "attack",  // ガード VS アタック → ガード勝ち
+    attack: "feint",  // アタック VS フェイント → アタック勝ち
+    feint: "smash"    // フェイント VS スマッシュ → フェイント勝ち
+  };
+  
+  if (a === b) return { p1_dmg: 0, p2_dmg: 0 }; // あいこ
+  if (winMap[a] === b) return { p1_dmg: 1, p2_dmg: 0 }; // a（自分）の勝ち
+  return { p1_dmg: 0, p2_dmg: 1 }; // b（相手）の勝ち
 }
 
 const PORT = process.env.PORT || 8080;

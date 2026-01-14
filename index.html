@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MONOMAKIA - モノマキア</title>
+  <title>MONOMAKIA - 剣闘士の決闘</title>
   <style>
     :root {
       --bg-color: #0d0d16;
@@ -17,37 +17,28 @@
       --status-online: #00ff88;
     }
 
-    /* --- 演出用スタイル --- */
-    /* 被弾時：赤フラッシュ */
+    /* 演出：ダメージ（赤フラッシュ＋激しい揺れ） */
     body.dmg-flash::after {
       content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255, 0, 0, 0.4); z-index: 9999; pointer-events: none;
       animation: flash-anim 0.3s ease-out forwards;
     }
-    /* 攻撃成功時：白フラッシュ */
+    .shake-damage { animation: shake-dmg-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+    
+    /* 演出：ヒット（白フラッシュ＋縦揺れ） */
     body.hit-flash::after {
       content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(255, 255, 255, 0.5); z-index: 9999; pointer-events: none;
       animation: flash-anim 0.2s ease-out forwards;
     }
-    @keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
-
-    /* 被弾時：左右の激しい揺れ */
-    .shake-damage { animation: shake-dmg-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-    @keyframes shake-dmg-anim {
-      10%, 90% { transform: translate3d(-4px, 0, 0); }
-      20%, 80% { transform: translate3d(6px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
-      40%, 60% { transform: translate3d(8px, 0, 0); }
-    }
-
-    /* 攻撃成功時：鋭い縦揺れ（ヒットストップ感） */
     .shake-hit { animation: shake-hit-anim 0.2s ease-out both; }
-    @keyframes shake-hit-anim {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(-12px); }
-      100% { transform: translateY(0); }
+
+    @keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes shake-dmg-anim {
+      10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); }
     }
+    @keyframes shake-hit-anim { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
 
     body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
     .screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
@@ -75,16 +66,17 @@
     .hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; overflow: hidden; border-radius: 4px; }
     .hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
 
-    /* カードボタンスタイル修正 */
     .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
     .card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; position: relative; }
     .card-btn:active:not(:disabled) { background: #1a1a2e; transform: scale(0.98); }
-    .card-btn b { font-size: 1.1rem; margin-bottom: 6px; display: block; }
+    .card-btn b { font-size: 1.0rem; margin-bottom: 6px; display: block; }
     .advantage-info { font-size: 0.65rem; color: #888; display: block; opacity: 0.8; }
 
-    #log { width: 100%; height: 160px; overflow-y: auto; margin-top: 20px; font-size: 0.85em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); box-sizing: border-box; color: #ccc; line-height: 1.5; }
-    .log-entry { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
-    .log-hands { font-size: 1.1em; letter-spacing: 2px; display: block; margin-bottom: 2px; }
+    #log { width: 100%; height: 180px; overflow-y: auto; margin-top: 20px; font-size: 0.85em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); box-sizing: border-box; color: #ccc; line-height: 1.6; }
+    .log-entry { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
+    .log-hands { font-size: 1.1em; letter-spacing: 2px; display: block; margin-bottom: 4px; text-align: center; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 0; }
+    .log-msg { font-size: 0.9em; display: block; margin-top: 2px; }
+
     .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
   </style>
 </head>
@@ -96,27 +88,27 @@
         <text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text>
       </svg>
     </div>
-    <p style="letter-spacing: 5px; color: var(--text-main); opacity: 0.8;">一対一の決闘</p>
+    <p style="letter-spacing: 5px; color: var(--text-main); opacity: 0.8;">闘技場の死闘</p>
     <div class="connection-panel"><div id="status-dot" class="status-dot"></div><span id="status-text">CONNECTING...</span></div>
-    <input type="text" id="user-name" placeholder="戦士の名を入力せよ" maxlength="10">
-    <button id="start-button" class="primary-btn" onclick="initAudioAndLobby()" disabled>門をくぐる</button>
+    <input type="text" id="user-name" placeholder="剣闘士の名を入力せよ" maxlength="10">
+    <button id="start-button" class="primary-btn" onclick="initAudioAndLobby()" disabled>闘技場へ入る</button>
   </div>
 
   <div id="screen-lobby" class="screen">
-    <h2 style="color: var(--text-main);">決闘の場を選択</h2>
+    <h2 style="color: var(--text-main);">戦場を選択</h2>
     <div class="room-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 400px;">
-      <button class="card-btn" onclick="joinRoom(1)">第壱の間</button>
-      <button class="card-btn" onclick="joinRoom(2)">第弐の間</button>
-      <button class="card-btn" onclick="joinRoom(3)">第参の間</button>
-      <button class="card-btn" onclick="joinRoom(4)">第四の間</button>
+      <button class="card-btn" onclick="joinRoom(1)">第壱の円形場</button>
+      <button class="card-btn" onclick="joinRoom(2)">第弐の円形場</button>
+      <button class="card-btn" onclick="joinRoom(3)">第参の円形場</button>
+      <button class="card-btn" onclick="joinRoom(4)">第四の円形場</button>
     </div>
   </div>
 
   <div id="screen-wait" class="screen">
-    <h2 id="room-display" style="color:var(--text-main);">ROOM</h2>
+    <h2 id="room-display" style="color:var(--text-main);">FIELD</h2>
     <button id="ready-btn" class="primary-btn" onclick="sendReady()">準備完了</button>
     <p id="wait-info" style="margin-top:20px; color:var(--status-online); font-size: 0.8em;"></p>
-    <button class="exit-link-btn" onclick="leaveRoom()">戦場を去る</button>
+    <button class="exit-link-btn" onclick="leaveRoom()">戦列を離れる</button>
   </div>
 
   <div id="screen-game" class="screen">
@@ -128,29 +120,29 @@
           <span id="p1-hp-text" style="width:20px;">5</span>
         </div>
         <div class="player-row">
-          <span style="font-size:0.8em; width:80px; text-align:left;" id="p2-display-name">相手</span>
+          <span style="font-size:0.8em; width:80px; text-align:left;" id="p2-display-name">対戦相手</span>
           <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
           <span id="p2-hp-text" style="width:20px;">5</span>
         </div>
       </div>
       <div id="player-ui">
-        <p id="game-info" style="font-size: 0.8em; margin-bottom: 15px; color: #888;">策を投じよ</p>
+        <p id="game-info" style="font-size: 0.8em; margin-bottom: 15px; color: #888;">機を伺え</p>
         <div class="card-grid">
           <button class="card-btn" onclick="sendCard('smash')">
-            <b>💥 破 -Smash-</b>
-            <span class="advantage-info">▶ 🛡️ 防御を崩す</span>
+            <b>💥 強襲 -Bash-</b>
+            <span class="advantage-info">▶ 🛡️ 構えを粉砕</span>
           </button>
           <button class="card-btn" onclick="sendCard('guard')">
-            <b>🛡️ 守 -Guard-</b>
-            <span class="advantage-info">▶ ⚔️ 攻撃を防ぐ</span>
+            <b>🛡️ 構え -Stance-</b>
+            <span class="advantage-info">▶ ⚔️ 斬撃を弾く</span>
           </button>
           <button class="card-btn" onclick="sendCard('attack')">
-            <b>⚔️ 斬 -Attack-</b>
-            <span class="advantage-info">▶ 🃏 謀略を断つ</span>
+            <b>⚔️ 斬撃 -Slash-</b>
+            <span class="advantage-info">▶ 🃏 追撃を断つ</span>
           </button>
           <button class="card-btn" onclick="sendCard('feint')">
-            <b>🃏 謀 -Feint-</b>
-            <span class="advantage-info">▶ 💥 強撃を躱す</span>
+            <b>🃏 追撃 -Riposte-</b>
+            <span class="advantage-info">▶ 💥 強襲を討つ</span>
           </button>
         </div>
       </div>
@@ -169,7 +161,7 @@
     let isSpectator = false;
     let currentHP1 = 5, currentHP2 = 5;
 
-    // --- サウンド生成 (Web Audio API) ---
+    // --- Sound Engine ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -232,7 +224,7 @@
           document.getElementById('p2-display-name').innerText = data.p2_name;
           currentHP1 = data.p1_hp; currentHP2 = data.p2_hp;
           updateHP(currentHP1, currentHP2);
-          log.innerHTML = `<div style="color:var(--hp-green);">--- 決闘開始 ---</div>`;
+          log.innerHTML = `<div style="color:var(--hp-green); text-align:center;">=== 決闘開始の鐘が鳴る ===</div>`;
         }
 
         if (data.type === "result") {
@@ -242,29 +234,41 @@
           const myNewHP = isMyP1 ? data.p1_hp : data.p2_hp;
           const oppNewHP = isMyP1 ? data.p2_hp : data.p1_hp;
 
-          if (myNewHP < myOldHP) {
-            triggerEffect('damage'); 
-          } else if (oppNewHP < oppOldHP) {
-            triggerEffect('hit');    
-          } else {
-            playSound('draw');       
-          }
+          if (myNewHP < myOldHP) { triggerEffect('damage'); } 
+          else if (oppNewHP < oppOldHP) { triggerEffect('hit'); } 
+          else { playSound('draw'); }
 
           currentHP1 = data.p1_hp; currentHP2 = data.p2_hp;
           updateHP(currentHP1, currentHP2);
           
           const iconMap = { smash: "💥", guard: "🛡️", attack: "⚔️", feint: "🃏" };
           const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
-          const hands = `<span class="log-hands">${iconMap[data.p1_card]} ⟷ ${iconMap[data.p2_card]}</span>`;
-          let msg = (winMap[data.p1_card] === data.p2_card) ? `🔥 【${data.p1_name}】の打撃！` : 
-                    (winMap[data.p2_card] === data.p1_card) ? `💀 【${data.p2_name}】の打撃！` : `⚡ 互角！`;
           
-          log.innerHTML = `<div class="log-entry">${hands}<div>${msg}</div></div>` + log.innerHTML;
+          // コロッセオ・フレーバーテキスト
+          const flavorTexts = {
+            smash: "凄まじい盾打ち（バッシュ）が、相手の構えを粉砕した！",
+            guard: "鉄壁の構えが、相手の斬撃を完璧に読み切り弾き返した！",
+            attack: "無駄のない鋭い一閃が、追撃の機先を制して深く切り裂いた！",
+            feint: "強襲の隙を見逃さず、死角から致命的な追い打ちを食らわせた！"
+          };
+
+          const hands = `<span class="log-hands">${iconMap[data.p1_card]} VS ${iconMap[data.p2_card]}</span>`;
+          let logMsg = "";
+
+          if (data.p1_card === data.p2_card) {
+            logMsg = `${hands}<div style="color:#888; text-align:center;">互いの鉄が激しく衝突し、火花が舞う！</div>`;
+          } else if (winMap[data.p1_card] === data.p2_card) {
+            logMsg = `${hands}<div class="log-msg" style="color:var(--hp-green);">🔥【${data.p1_name}】の${flavorTexts[data.p1_card]}</div>`;
+          } else {
+            logMsg = `${hands}<div class="log-msg" style="color:var(--hp-red);">💀【${data.p2_name}】の${flavorTexts[data.p2_card]}</div>`;
+          }
+          
+          log.innerHTML = `<div class="log-entry">${logMsg}</div>` + log.innerHTML;
         }
 
         if (data.type === "finish") {
           playSound('finish');
-          document.getElementById('winner-text').innerText = data.winner + " の勝利";
+          document.getElementById('winner-text').innerText = data.winner + " が勝鬨を上げた";
           document.getElementById('finish-screen').style.display = "flex";
         }
       };
@@ -295,18 +299,17 @@
     }
 
     function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-    function joinRoom(n) { playSound('select'); myName = document.getElementById('user-name').value.trim() || "無名の戦士"; ws.send(JSON.stringify({ type: "join", room: "第" + n + "の間", userName: myName })); }
+    function joinRoom(n) { playSound('select'); myName = document.getElementById('user-name').value.trim() || "名無しの剣闘士"; ws.send(JSON.stringify({ type: "join", room: "第" + n + "の円形場", userName: myName })); }
     
-    // --- 修正箇所：ボタンのテキスト変更処理を追加 ---
     function sendReady() { 
       playSound('select'); 
       ws.send(JSON.stringify({ type: "ready" })); 
       const btn = document.getElementById('ready-btn');
       btn.disabled = true;
-      btn.innerText = "待機中..."; // テキスト変更を復活
+      btn.innerText = "出陣待機中...";
     }
     
-    function sendCard(c) { playSound('select'); ws.send(JSON.stringify({ type: "card", card: c })); document.getElementById('game-info').innerText = "相手を待っている..."; }
+    function sendCard(c) { playSound('select'); ws.send(JSON.stringify({ type: "card", card: c })); document.getElementById('game-info').innerText = "相手の動向を注視している..."; }
     function leaveRoom() { ws.send(JSON.stringify({ type: "leave" })); location.reload(); }
 
     connectWS();
