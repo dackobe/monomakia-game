@@ -58,12 +58,10 @@ function connectWS() {
         logRestartBtn.innerText = "🔥 再戦";
       }
 
-      // ★追加：開始時にボタン選択状態をリセット
       resetCardSelection();
     }
 
     if (data.type === "result") {
-      // ★追加：結果が出たらボタン選択状態をリセット（次のターンのため）
       resetCardSelection();
 
       const isMyP1 = (data.p1_name === myName);
@@ -92,7 +90,13 @@ function connectWS() {
     }
 
     if (data.type === "finish") {
-      document.getElementById('winner-text').innerText = data.winner + " の勝利！";
+      // ★修正：引き分けの場合の表示処理
+      if (data.winner === "DRAW") {
+        document.getElementById('winner-text').innerText = "引き分け！";
+      } else {
+        document.getElementById('winner-text').innerText = data.winner + " の勝利！";
+      }
+      
       document.getElementById('finish-screen').style.display = "flex";
       document.getElementById('restart-area').style.display = "flex";
     }
@@ -142,7 +146,6 @@ function sendReady() {
   if(readyBtn) readyBtn.disabled = true;
 }
 
-// ★追加：ボタンの色をリセットする関数
 function resetCardSelection() {
   document.querySelectorAll('.card-btn').forEach(btn => {
     btn.classList.remove('selected');
@@ -150,7 +153,6 @@ function resetCardSelection() {
 }
 
 function sendCard(c) {
-  // ★修正：押したボタンだけを光らせる（他のボタンは消す）
   resetCardSelection();
   const btnId = 'btn-' + c;
   const btn = document.getElementById(btnId);

@@ -64,7 +64,6 @@ wss.on('connection', (ws) => {
         room.gameActive = true;
         room.multiplier = 1;
         
-        // ★HP初期値を5に設定
         room.players.forEach(p => { 
           p.hp = 5; 
           p.isReady = false; 
@@ -89,8 +88,6 @@ wss.on('connection', (ws) => {
       if (p1 && p2 && p1.selectedCard && p2.selectedCard) {
         const res = judge(p1, p2, room.multiplier);
         
-        // ★HP計算：上限はオーバーヒールを許容するため10のままにしておくが、
-        // 初期値は5であり、全回復スキルは5をターゲットにする
         p1.hp = Math.max(0, Math.min(10, p1.hp - res.p1_dmg));
         p2.hp = Math.max(0, Math.min(10, p2.hp - res.p2_dmg));
 
@@ -109,7 +106,16 @@ wss.on('connection', (ws) => {
           isDraw: res.isDraw
         });
 
-        if (p1.hp <= 0 || p2.hp <= 0) {
+        // ★修正：勝敗判定ロジック
+        if (p1.hp <= 0 && p2.hp <= 0) {
+          // 両者HPが0以下の場合（引き分け）
+          room.gameActive = false;
+          broadcast(ws.roomId, { 
+            type: "finish", 
+            winner: "DRAW" // 引き分けフラグを送る
+          });
+        } else if (p1.hp <= 0 || p2.hp <= 0) {
+          // どちらか片方が0以下の場合（決着）
           room.gameActive = false;
           broadcast(ws.roomId, { 
             type: "finish", 
@@ -135,10 +141,8 @@ wss.on('connection', (ws) => {
 });
 
 function judge(p1, p2, mult) {
-  // ★ここに修正：hp情報を追加してspecial-actionsに渡す
   const p1Data = { name: p1.userName, card: p1.selectedCard, hp: p1.hp };
   const p2Data = { name: p2.userName, card: p2.selectedCard, hp: p2.hp };
-  
   if (p1Data.card === 'special' || p2Data.card === 'special') {
     return handleSpecial(p1Data, p2Data, mult);
   }
@@ -151,7 +155,7 @@ function broadcast(roomId, msg) {
   }
 }
 
-// Renderが指定するポートを使用し、なければ8080を使う
+// Render対応のポート設定
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
