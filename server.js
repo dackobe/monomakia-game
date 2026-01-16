@@ -1,147 +1,156 @@
 const http = require('http');
 const fs = require('fs');
-const WebSocket = require('ws');
 const path = require('path');
+const WebSocket = require('ws');
 
+// --- 外部ファイルの読み込み ---
+const { getNormalResult } = require('./engine');
+const { handleSpecial } = require('./special-actions');
+
+// 1. HTTPサーバー
 const server = http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/') {
-    const filePath = path.join(__dirname, 'index.html');
-    fs.readFile(filePath, (err, data) => {
-      if (err) { res.writeHead(500); res.end('Error'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=UTF-8' });
-      res.end(data);
-    });
-  }
+  let filePath = req.url === '/' ? '/index.html' : req.url;
+  const ext = path.extname(filePath);
+  const contentType = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[ext] || 'text/plain';
+  
+  fs.readFile(__dirname + filePath, (err, data) => {
+    if (err) { res.writeHead(404); res.end("Not Found"); return; }
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+  });
 });
 
+// 2. WebSocketサーバー
 const wss = new WebSocket.Server({ server });
 const rooms = {};
 
+// 3. 通信ロジック
 wss.on('connection', (ws) => {
+  console.log('新しく剣闘士が接続しました');
+
   ws.on('message', msg => {
+    let data;
     try {
-      const data = JSON.parse(msg.toString());
+      data = JSON.parse(msg);
+    } catch (e) {
+      return;
+    }
 
-      if (data.type === "join") {
-        const roomId = data.room;
-        ws.userName = data.userName || "名無しの剣闘士";
-        ws.roomId = roomId;
+    if (data.type === "join") {
+      ws.roomId = data.room;
+      ws.userName = data.userName;
+      
+      if (!rooms[ws.roomId]) {
+        rooms[ws.roomId] = { players: [], gameActive: false, multiplier: 1 };
+      }
+
+      rooms[ws.roomId].players = rooms[ws.roomId].players.filter(p => p !== ws);
+      rooms[ws.roomId].players.push(ws);
+      
+      console.log(`${ws.userName} が ${ws.roomId} に入室（現在: ${rooms[ws.roomId].players.length}人）`);
+      ws.send(JSON.stringify({ type: "joined", room: ws.roomId }));
+      return;
+    }
+
+    const room = rooms[ws.roomId];
+    if (!room) return;
+
+    if (data.type === "ready") {
+      ws.isReady = true;
+      console.log(`${ws.userName} 準備完了`);
+
+      if (room.players.length === 2 && room.players.every(p => p.isReady)) {
+        console.log("--- 決闘開始 ---");
+        room.gameActive = true;
+        room.multiplier = 1;
         
-        if (!rooms[roomId]) {
-          rooms[roomId] = { players: [], spectators: [], gameActive: false, damageMultiplier: 1 };
-        }
+        // ★HP初期値を5に設定
+        room.players.forEach(p => { 
+          p.hp = 5; 
+          p.isReady = false; 
+          p.selectedCard = null; 
+        });
 
-        const room = rooms[roomId];
-        room.players = room.players.filter(p => p.readyState === WebSocket.OPEN);
+        broadcast(ws.roomId, { 
+          type: "start", 
+          p1_name: room.players[0].userName, 
+          p2_name: room.players[1].userName 
+        });
+      }
+      return;
+    }
 
-        if (room.players.length < 2) {
-          ws.isSpectator = false; ws.isReady = false; ws.hp = 5; 
-          room.players.push(ws);
-          ws.send(JSON.stringify({ type: "joined", room: roomId, role: "player" }));
+    if (data.type === "card") {
+      if (!room.gameActive) return;
+      
+      ws.selectedCard = data.card;
+      const [p1, p2] = room.players;
+
+      if (p1 && p2 && p1.selectedCard && p2.selectedCard) {
+        const res = judge(p1, p2, room.multiplier);
+        
+        // ★HP計算：上限はオーバーヒールを許容するため10のままにしておくが、
+        // 初期値は5であり、全回復スキルは5をターゲットにする
+        p1.hp = Math.max(0, Math.min(10, p1.hp - res.p1_dmg));
+        p2.hp = Math.max(0, Math.min(10, p2.hp - res.p2_dmg));
+
+        if (res.isDraw) {
+          room.multiplier++;
         } else {
-          ws.isSpectator = true; ws.isReady = false;
-          room.spectators.push(ws);
-          ws.send(JSON.stringify({ type: "joined", room: roomId, role: "spectator" }));
+          room.multiplier = 1;
         }
-        broadcastRoster(roomId);
-      }
 
-      if (data.type === "ready") {
-        ws.isReady = true;
-        const room = rooms[ws.roomId];
-        broadcastRoster(ws.roomId);
+        broadcast(ws.roomId, {
+          type: "result",
+          p1_name: p1.userName, p1_card: p1.selectedCard, p1_hp: p1.hp,
+          p2_name: p2.userName, p2_card: p2.selectedCard, p2_hp: p2.hp,
+          battleMsg: res.msg,
+          multiplier: room.multiplier,
+          isDraw: res.isDraw
+        });
 
-        // 全員（プレイヤー＋観戦者）がReadyになったら開始
-        const allMembers = [...room.players, ...room.spectators];
-        const readyCount = allMembers.filter(m => m.isReady).length;
-
-        if (readyCount === allMembers.length && room.players.length === 2) {
-          room.gameActive = true;
-          room.damageMultiplier = 1;
-          room.players.forEach(p => { p.hp = 5; p.isReady = false; });
-          room.spectators.forEach(s => s.isReady = false);
-          
-          const [p1, p2] = room.players;
-          p1.opponent = p2; p2.opponent = p1;
+        if (p1.hp <= 0 || p2.hp <= 0) {
+          room.gameActive = false;
           broadcast(ws.roomId, { 
-            type: "start", p1_name: p1.userName, p2_name: p2.userName, p1_hp: 5, p2_hp: 5 
+            type: "finish", 
+            winner: p1.hp > 0 ? p1.userName : p2.userName 
           });
-          broadcastRoster(ws.roomId);
         }
+        
+        p1.selectedCard = null;
+        p2.selectedCard = null;
       }
-
-      if (data.type === "card" && !ws.isSpectator) {
-        const room = rooms[ws.roomId];
-        if (!room.gameActive || !ws.opponent || ws.hp <= 0 || ws.opponent.hp <= 0) return;
-        ws.selectedCard = data.card;
-
-        if (ws.opponent.selectedCard) {
-          const res = judge(ws.selectedCard, ws.opponent.selectedCard);
-          
-          if (res.p1_dmg === 0 && res.p2_dmg === 0) {
-            room.damageMultiplier += 1;
-          } else {
-            const currentDmg = room.damageMultiplier;
-            if (res.p1_dmg) ws.opponent.hp -= currentDmg;
-            if (res.p2_dmg) ws.hp -= currentDmg;
-            room.damageMultiplier = 1;
-          }
-
-          broadcast(ws.roomId, { 
-            type: "result", 
-            p1_name: room.players[0].userName, p1_card: room.players[0].selectedCard, p1_hp: Math.max(0, room.players[0].hp),
-            p2_name: room.players[1].userName, p2_card: room.players[1].selectedCard, p2_hp: Math.max(0, room.players[1].hp),
-            multiplier: room.damageMultiplier 
-          });
-
-          if (ws.hp <= 0 || ws.opponent.hp <= 0) {
-            const winner = ws.hp > 0 ? ws.userName : ws.opponent.userName;
-            broadcast(ws.roomId, { type: "finish", winner: winner });
-            room.gameActive = false;
-            // room_resetはここで行わず、再戦ボタン押下を待つ
-          }
-          room.players.forEach(p => p.selectedCard = null);
-        }
-      }
-
-      if (data.type === "leave") handleDisconnect(ws);
-    } catch (e) { console.error(e); }
+    }
   });
-  ws.on('close', () => handleDisconnect(ws));
+
+  ws.on('close', () => {
+    if (ws.roomId && rooms[ws.roomId]) {
+      rooms[ws.roomId].players = rooms[ws.roomId].players.filter(p => p !== ws);
+      if (rooms[ws.roomId].players.length === 0) {
+        delete rooms[ws.roomId];
+      }
+    }
+    console.log('接続が終了しました');
+  });
 });
 
-function broadcastRoster(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-  const users = [
-    ...room.players.map(p => ({ name: p.userName, role: 'player', ready: p.isReady })),
-    ...room.spectators.map(s => ({ name: s.userName, role: 'spectator', ready: s.isReady }))
-  ];
-  broadcast(roomId, { type: "roster", users: users });
+function judge(p1, p2, mult) {
+  // ★ここに修正：hp情報を追加してspecial-actionsに渡す
+  const p1Data = { name: p1.userName, card: p1.selectedCard, hp: p1.hp };
+  const p2Data = { name: p2.userName, card: p2.selectedCard, hp: p2.hp };
+  
+  if (p1Data.card === 'special' || p2Data.card === 'special') {
+    return handleSpecial(p1Data, p2Data, mult);
+  }
+  return getNormalResult(p1Data.card, p2Data.card, mult, p1Data.name, p2Data.name);
 }
 
-function handleDisconnect(ws) {
-  const room = rooms[ws.roomId];
-  if (room) {
-    room.players = room.players.filter(p => p !== ws);
-    room.spectators = room.spectators.filter(p => p !== ws);
-    broadcastRoster(ws.roomId);
+function broadcast(roomId, msg) {
+  if (rooms[roomId]) {
+    rooms[roomId].players.forEach(p => p.send(JSON.stringify(msg)));
   }
 }
 
-function broadcast(roomId, data) {
-  const room = rooms[roomId];
-  if (!room) return;
-  const msg = JSON.stringify(data);
-  [...room.players, ...room.spectators].forEach(c => { if(c.readyState === WebSocket.OPEN) c.send(msg); });
-}
-
-function judge(a, b) {
-  const winMap = { smash: "guard", guard: "attack", attack: "feint", feint: "smash" };
-  if (winMap[a] === b) return { p1_dmg: 1, p2_dmg: 0 };
-  if (winMap[b] === a) return { p1_dmg: 0, p2_dmg: 1 };
-  return { p1_dmg: 0, p2_dmg: 0 }; // それ以外はすべてあいこ
-}
-
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => console.log(`Server: http://localhost:${PORT}`));
+server.listen(8080, () => {
+  console.log('Server started on http://localhost:8080');
+});

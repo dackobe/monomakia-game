@@ -1,0 +1,66 @@
+:root {
+  --bg-color: #0d0d16; --card-bg: #16213e; --accent-color: #1a1a2e;
+  --text-main: #e94560; --glow-color: rgba(233, 69, 96, 0.8);
+  --text-sub: #ffffff; --hp-green: #00ff88; --hp-red: #ff4b2b; --status-online: #00ff88;
+}
+
+/* 演出用アニメーション */
+body.dmg-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255, 0, 0, 0.4); z-index: 9999; animation: flash-anim 0.3s ease-out forwards; pointer-events: none; }
+body.hit-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255, 255, 255, 0.5); z-index: 9999; animation: flash-anim 0.2s ease-out forwards; pointer-events: none; }
+.shake-damage { animation: shake-dmg-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+.shake-hit { animation: shake-hit-anim 0.2s ease-out both; }
+
+@keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes shake-dmg-anim { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+@keyframes shake-hit-anim { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
+
+body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+.screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
+.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+.logo-box { width: 95%; max-width: 450px; margin-bottom: 2px; }
+.game-logo-svg { width: 100%; height: auto; filter: drop-shadow(0 0 10px var(--glow-color)); }
+.game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; }
+
+.connection-panel { background: rgba(255,255,255,0.03); padding: 8px 15px; border-radius: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 8px; font-size: 0.7em; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
+.dot-online { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
+
+input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #333; width: 80%; max-width: 260px; margin-bottom: 15px; background: #000; color: white; text-align: center; }
+button { padding: 12px 24px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--accent-color); color: white; font-weight: bold; transition: 0.2s; }
+button:disabled { background: #333; color: #888; cursor: not-allowed; }
+.primary-btn { background: var(--text-main); border: none; width: 220px; font-size: 1.1em; }
+
+.battle-field { width: 100%; max-width: 500px; }
+.hp-section { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+.player-row { display: flex; align-items: center; justify-content: space-between; }
+.hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; overflow: hidden; border-radius: 4px; }
+.hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease; }
+.card-btn b { font-size: 1.0rem; margin-bottom: 6px; display: block; }
+.advantage-info { font-size: 0.65rem; color: #888; opacity: 0.8; }
+
+#log { width: 100%; height: 200px; overflow-y: auto; margin-top: 20px; font-size: 0.85em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); box-sizing: border-box; }
+.log-entry { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
+.log-hands { font-size: 1.1em; text-align: center; display: block; background: rgba(255,255,255,0.05); margin-bottom: 4px; }
+.multiplier-notice { color: #ffa500; font-weight: bold; text-align: center; border: 1px solid #ffa500; border-radius: 4px; font-size: 0.85em; padding: 2px; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+
+/* --- ここから追加：ボタン選択時のスタイル --- */
+
+/* 選択されたカード */
+.card-btn.selected {
+  background-color: var(--text-main) !important; /* 赤くする */
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 15px var(--glow-color);
+  transform: translateY(-2px);
+}
+
+/* 選択時に他のカードを少し暗くする（視認性向上） */
+.card-grid:has(.selected) .card-btn:not(.selected) {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
