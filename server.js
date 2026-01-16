@@ -151,6 +151,8 @@ function broadcast(roomId, msg) {
   }
 }
 
-server.listen(8080, () => {
-  console.log('Server started on http://localhost:8080');
+// Renderが指定するポートを使用し、なければ8080を使う
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
