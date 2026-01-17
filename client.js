@@ -58,6 +58,27 @@ function connectWS() {
         logRestartBtn.innerText = "🔥 再戦";
       }
 
+      // 名前反映ロジック
+      const p1Label = document.getElementById('p1-name');
+      const p2Label = document.getElementById('p2-name');
+      
+      // 色をリセット
+      p1Label.style.color = "var(--text-sub)";
+      p2Label.style.color = "var(--text-sub)";
+      
+      // 名前をセット
+      p1Label.innerText = data.p1_name;
+      p2Label.innerText = data.p2_name;
+
+      // 自分の名前に色とマークをつける
+      if (data.p1_name === myName) {
+        p1Label.style.color = "var(--hp-green)";
+        p1Label.innerText += " (自分)";
+      } else if (data.p2_name === myName) {
+        p2Label.style.color = "var(--hp-green)";
+        p2Label.innerText += " (自分)";
+      }
+
       resetCardSelection();
     }
 
@@ -90,7 +111,7 @@ function connectWS() {
     }
 
     if (data.type === "finish") {
-      // ★修正：引き分けの場合の表示処理
+      // 引き分け処理
       if (data.winner === "DRAW") {
         document.getElementById('winner-text').innerText = "引き分け！";
       } else {

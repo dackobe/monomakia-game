@@ -37,15 +37,23 @@
   <div id="screen-game" class="screen">
     <div id="battle-wrap" class="battle-field">
       <div class="hp-section">
-        <div class="player-row"><span>あなた</span><div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div><span id="p1-hp-text">5</span></div>
-        <div class="player-row"><span>相手</span><div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div><span id="p2-hp-text">5</span></div>
+        <div class="player-row">
+          <span id="p1-name" style="font-weight:bold; min-width:80px;">Player1</span>
+          <div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div>
+          <span id="p1-hp-text">5</span>
+        </div>
+        <div class="player-row">
+          <span id="p2-name" style="font-weight:bold; min-width:80px;">Player2</span>
+          <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
+          <span id="p2-hp-text">5</span>
+        </div>
       </div>
       
       <div class="card-grid">
         <button id="btn-smash" class="card-btn" onclick="sendCard('smash')"><b>💥 強襲</b><span class="advantage-info">▶ 🛡️ 盾を崩す</span></button>
-        <button id="btn-guard" class="card-btn" onclick="sendCard('guard')"><b>🛡️ 盾で守る</b><span class="advantage-info">▶ ⚔️ 剣を弾いてスキを作る</span></button>
-        <button id="btn-attack" class="card-btn" onclick="sendCard('attack')"><b>⚔️ 剣で切る</b><span class="advantage-info">▶ 🃏 避けれない</span></button>
-        <button id="btn-feint" class="card-btn" onclick="sendCard('feint')"><b>🃏 避ける</b><span class="advantage-info">▶ 💥 大振りをかわす</span></button>
+        <button id="btn-guard" class="card-btn" onclick="sendCard('guard')"><b>🛡️ 盾で守る</b><span class="advantage-info">▶ ⚔️ 剣を弾く</span></button>
+        <button id="btn-attack" class="card-btn" onclick="sendCard('attack')"><b>⚔️ 剣で切る</b><span class="advantage-info">▶ 🃏 避けるを突く</span></button>
+        <button id="btn-feint" class="card-btn" onclick="sendCard('feint')"><b>🃏 避ける</b><span class="advantage-info">▶ 💥 大振りを躱す</span></button>
         <button id="btn-special" class="card-btn special-btn" style="grid-column: span 2; height: 60px;" onclick="sendCard('special')">
           <b style="color: #a349a4;">🌀 奇行</b>
           <span class="advantage-info">??? 予測不能 ???</span>
