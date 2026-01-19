@@ -3,15 +3,21 @@ const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 
-// --- 外部ファイルの読み込み ---
+// 外部ファイルの読み込み (同階層にある前提)
 const { getNormalResult } = require('./engine');
 const { handleSpecial } = require('./special-actions');
 
-// 1. HTTPサーバー
 const server = http.createServer((req, res) => {
   let filePath = req.url === '/' ? '/index.html' : req.url;
   const ext = path.extname(filePath);
-  const contentType = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' }[ext] || 'text/plain';
+  const contentType = { 
+    '.html': 'text/html', 
+    '.js': 'text/javascript', 
+    '.css': 'text/css',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.mp3': 'audio/mpeg'
+  }[ext] || 'text/plain';
   
   fs.readFile(__dirname + filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end("Not Found"); return; }
@@ -20,82 +26,168 @@ const server = http.createServer((req, res) => {
   });
 });
 
-// 2. WebSocketサーバー
 const wss = new WebSocket.Server({ server });
 const rooms = {};
 
-// 3. 通信ロジック
+// ロビーのリスト配信
+function broadcastRoomList() {
+  const list = Object.keys(rooms).map(roomId => {
+    const r = rooms[roomId];
+    return {
+      id: roomId,
+      name: r.customName || roomId,
+      count: r.players.length,
+      status: r.gameActive ? 'playing' : (r.players.length >= 2 ? 'full' : 'open')
+    };
+  });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ type: "room_list", list: list }));
+    }
+  });
+}
+
+// 待機画面のメンバー更新
+function broadcastRoomUpdate(roomId) {
+  if (!rooms[roomId]) return;
+  const room = rooms[roomId];
+  const memberList = room.players.map(p => ({
+    name: p.userName,
+    image: p.userImage,
+    isReady: p.isReady || false
+  }));
+  room.players.forEach(p => {
+    if (p.readyState === WebSocket.OPEN) {
+      p.send(JSON.stringify({ type: "room_update", members: memberList }));
+    }
+  });
+}
+
+// チャット配信
+function broadcastChat(roomId, senderName, message) {
+  if (!rooms[roomId]) return;
+  rooms[roomId].players.forEach(p => {
+    if (p.readyState === WebSocket.OPEN) {
+      p.send(JSON.stringify({ type: "chat_receive", sender: senderName, message: message }));
+    }
+  });
+}
+
 wss.on('connection', (ws) => {
   console.log('新しく剣闘士が接続しました');
+  broadcastRoomList();
 
   ws.on('message', msg => {
     let data;
-    try {
-      data = JSON.parse(msg);
-    } catch (e) {
+    try { data = JSON.parse(msg); } catch (e) { return; }
+
+    // ルーム作成
+    if (data.type === "create_room") {
+      const roomId = data.room;
+      if (rooms[roomId]) {
+        ws.send(JSON.stringify({ type: "error", message: "その名前のルームは既に存在します" }));
+        return;
+      }
+      rooms[roomId] = { players: [], gameActive: false, multiplier: 1, customName: roomId };
+      broadcastRoomList();
       return;
     }
 
+    // 入室
     if (data.type === "join") {
       ws.roomId = data.room;
       ws.userName = data.userName;
+      ws.userImage = data.userImage || "";
       
       if (!rooms[ws.roomId]) {
-        rooms[ws.roomId] = { players: [], gameActive: false, multiplier: 1 };
+        rooms[ws.roomId] = { players: [], gameActive: false, multiplier: 1, customName: data.room };
+      }
+
+      if (rooms[ws.roomId].players.length >= 2) {
+        ws.send(JSON.stringify({ type: "error", message: "満員です" }));
+        return;
       }
 
       rooms[ws.roomId].players = rooms[ws.roomId].players.filter(p => p !== ws);
       rooms[ws.roomId].players.push(ws);
       
-      console.log(`${ws.userName} が ${ws.roomId} に入室（現在: ${rooms[ws.roomId].players.length}人）`);
       ws.send(JSON.stringify({ type: "joined", room: ws.roomId }));
+      
+      broadcastRoomList();
+      broadcastRoomUpdate(ws.roomId);
+      broadcastChat(ws.roomId, "System", `${ws.userName} が入室しました`);
+      return;
+    }
+
+    // 退出 (leave)
+    if (data.type === "leave") {
+      if (ws.roomId && rooms[ws.roomId]) {
+        const room = rooms[ws.roomId];
+        
+        // リストから削除
+        room.players = room.players.filter(p => p !== ws);
+        broadcastChat(ws.roomId, "System", `${ws.userName} が退出しました`);
+        
+        if (room.players.length === 0) {
+          delete rooms[ws.roomId];
+        } else {
+          broadcastRoomUpdate(ws.roomId);
+        }
+        
+        ws.roomId = null;
+        ws.isReady = false;
+        ws.selectedCard = null;
+
+        // ★重要: ロビーの人数表示を更新
+        broadcastRoomList();
+      }
       return;
     }
 
     const room = rooms[ws.roomId];
     if (!room) return;
 
+    // チャット送信
+    if (data.type === "chat_send") {
+      broadcastChat(ws.roomId, ws.userName, data.message);
+      return;
+    }
+
+    // 準備完了
     if (data.type === "ready") {
       ws.isReady = true;
-      console.log(`${ws.userName} 準備完了`);
+      broadcastRoomUpdate(ws.roomId);
 
       if (room.players.length === 2 && room.players.every(p => p.isReady)) {
         console.log("--- 決闘開始 ---");
         room.gameActive = true;
         room.multiplier = 1;
-        
-        room.players.forEach(p => { 
-          p.hp = 5; 
-          p.isReady = false; 
-          p.selectedCard = null; 
-        });
+        room.players.forEach(p => { p.hp = 5; p.isReady = false; p.selectedCard = null; });
 
         broadcast(ws.roomId, { 
           type: "start", 
           p1_name: room.players[0].userName, 
-          p2_name: room.players[1].userName 
+          p1_image: room.players[0].userImage,
+          p2_name: room.players[1].userName, 
+          p2_image: room.players[1].userImage
         });
+        broadcastRoomList();
       }
       return;
     }
 
+    // カード選択
     if (data.type === "card") {
       if (!room.gameActive) return;
-      
       ws.selectedCard = data.card;
       const [p1, p2] = room.players;
 
       if (p1 && p2 && p1.selectedCard && p2.selectedCard) {
         const res = judge(p1, p2, room.multiplier);
-        
         p1.hp = Math.max(0, Math.min(10, p1.hp - res.p1_dmg));
         p2.hp = Math.max(0, Math.min(10, p2.hp - res.p2_dmg));
 
-        if (res.isDraw) {
-          room.multiplier++;
-        } else {
-          room.multiplier = 1;
-        }
+        if (res.isDraw) { room.multiplier++; } else { room.multiplier = 1; }
 
         broadcast(ws.roomId, {
           type: "result",
@@ -106,37 +198,32 @@ wss.on('connection', (ws) => {
           isDraw: res.isDraw
         });
 
-        // ★修正：勝敗判定ロジック
         if (p1.hp <= 0 && p2.hp <= 0) {
-          // 両者HPが0以下の場合（引き分け）
           room.gameActive = false;
-          broadcast(ws.roomId, { 
-            type: "finish", 
-            winner: "DRAW" // 引き分けフラグを送る
-          });
+          broadcast(ws.roomId, { type: "finish", winner: "DRAW" });
+          broadcastRoomList();
         } else if (p1.hp <= 0 || p2.hp <= 0) {
-          // どちらか片方が0以下の場合（決着）
           room.gameActive = false;
-          broadcast(ws.roomId, { 
-            type: "finish", 
-            winner: p1.hp > 0 ? p1.userName : p2.userName 
-          });
+          broadcast(ws.roomId, { type: "finish", winner: p1.hp > 0 ? p1.userName : p2.userName });
+          broadcastRoomList();
         }
-        
-        p1.selectedCard = null;
-        p2.selectedCard = null;
+        p1.selectedCard = null; p2.selectedCard = null;
       }
     }
   });
 
   ws.on('close', () => {
     if (ws.roomId && rooms[ws.roomId]) {
-      rooms[ws.roomId].players = rooms[ws.roomId].players.filter(p => p !== ws);
-      if (rooms[ws.roomId].players.length === 0) {
+      const room = rooms[ws.roomId];
+      room.players = room.players.filter(p => p !== ws);
+      broadcastChat(ws.roomId, "System", `${ws.userName || '誰か'} が退出しました`);
+      if (room.players.length === 0) {
         delete rooms[ws.roomId];
+      } else {
+        broadcastRoomUpdate(ws.roomId);
       }
+      broadcastRoomList();
     }
-    console.log('接続が終了しました');
   });
 });
 
@@ -155,7 +242,6 @@ function broadcast(roomId, msg) {
   }
 }
 
-// Render対応のポート設定
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);

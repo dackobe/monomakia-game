@@ -1,66 +1,326 @@
 :root {
-  --bg-color: #0d0d16; --card-bg: #16213e; --accent-color: #1a1a2e;
-  --text-main: #e94560; --glow-color: rgba(233, 69, 96, 0.8);
-  --text-sub: #ffffff; --hp-green: #00ff88; --hp-red: #ff4b2b; --status-online: #00ff88;
+  --bg-color: #0d0d16;
+  --panel-bg: rgba(255, 255, 255, 0.05);
+  --text-main: #e94560;
+  --text-sub: #ffffff;
+  --accent-blue: #0f3460;
+  --hp-green: #00ff88;
+  --hp-red: #ff4b2b;
+  --glow-color: rgba(233, 69, 96, 0.8);
+  --border-bronze: #8c7853;
+  --window-bg: rgba(25, 20, 15, 0.95);
+  --battle-panel-bg: rgba(10, 10, 12, 0.85); 
+  --battle-border: #6e5f48;
 }
 
-/* 演出用アニメーション */
-body.dmg-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255, 0, 0, 0.4); z-index: 9999; animation: flash-anim 0.3s ease-out forwards; pointer-events: none; }
-body.hit-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255, 255, 255, 0.5); z-index: 9999; animation: flash-anim 0.2s ease-out forwards; pointer-events: none; }
-.shake-damage { animation: shake-dmg-anim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
-.shake-hit { animation: shake-hit-anim 0.2s ease-out both; }
+body {
+  font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  text-align: center;
+  margin: 0;
+  background: var(--bg-color);
+  color: var(--text-sub);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
 
-@keyframes flash-anim { 0% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes shake-dmg-anim { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(6px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
-@keyframes shake-hit-anim { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
+/* --- 共通レイアウト --- */
+.screen { display: none; padding: 10px; min-height: 100vh; box-sizing: border-box; }
+.active { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
 
-body { font-family: 'Hiragino Mincho ProN', serif; text-align: center; margin: 0; background: var(--bg-color); color: var(--text-sub); overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
-.screen { display: none; padding: 15px; min-height: 100vh; box-sizing: border-box; }
-.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+/* --- タイトル画面 (PCデフォルト) --- */
+#screen-name {
+  background-image: url('title_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  justify-content: flex-end !important; /* PCでは下寄せ */
+  padding-bottom: 40px;
+}
+#screen-name .main-logo { display: flex; } /* PCでは表示 */
 
-.logo-box { width: 95%; max-width: 450px; margin-bottom: 2px; }
-.game-logo-svg { width: 100%; height: auto; filter: drop-shadow(0 0 10px var(--glow-color)); }
-.game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; }
+/* --- ロビー画面 & 待機画面 --- */
+#screen-lobby, #screen-wait {
+  background-image: url('lobby_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  justify-content: center;
+  align-items: center;
+}
 
-.connection-panel { background: rgba(255,255,255,0.03); padding: 8px 15px; border-radius: 20px; margin-bottom: 25px; display: flex; align-items: center; gap: 8px; font-size: 0.7em; }
+/* --- バトル画面 --- */
+#screen-game {
+  background-image: url('battle_bg.jpg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  width: 100%;
+  padding-top: 15px;
+  justify-content: flex-start;
+}
+
+.game-header, .players-container, .battle-field { width: 100%; max-width: 800px; }
+
+/* --- 下部レイアウト --- */
+.title-bottom-layout { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; max-width: 1000px; padding: 0 20px; box-sizing: border-box; flex-wrap: wrap; gap: 20px; }
+
+/* --- ロゴ --- */
+.logo-box { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
+.main-logo { max-width: 450px; margin-top: 20px; }
+.header-logo-box { max-width: 280px; margin: 0 auto 5px; height: 40px; }
+.game-logo-svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px var(--glow-color)); }
+.game-logo-text { font-family: 'Times New Roman', serif; font-weight: bold; fill: var(--text-main); text-anchor: middle; letter-spacing: 6px; font-size: 48px; }
+
+/* --- ニュースウィンドウ --- */
+.news-window { width: 100%; max-width: 350px; background: rgba(16, 16, 20, 0.9); border: 2px solid var(--border-bronze); border-radius: 6px; box-shadow: 0 0 15px rgba(0,0,0,0.8); display: flex; flex-direction: column; overflow: hidden; }
+.news-tabs { display: flex; background: rgba(30, 30, 40, 0.9); border-bottom: 1px solid var(--border-bronze); }
+.news-tab { flex: 1; padding: 8px 0; text-align: center; font-size: 0.9rem; font-weight: bold; color: #888; cursor: pointer; background: linear-gradient(to bottom, #2a2a2a, #1a1a1a); border-right: 1px solid #444; transition: all 0.2s; }
+.news-tab:last-child { border-right: none; }
+#tab-news.active { color: #e0d0b0; background: linear-gradient(to bottom, #1d4e5f, #0f3460); box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+#tab-event.active { color: #fff; background: linear-gradient(to bottom, #a03030, #601010); text-shadow: 0 0 5px #ffcccc; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+.news-content { height: 150px; overflow-y: auto; padding: 10px; text-align: left; font-size: 0.8rem; }
+.news-item { border-bottom: 1px dashed rgba(140, 120, 83, 0.3); padding: 6px 0; color: #ccc; line-height: 1.4; }
+.news-item:last-child { border-bottom: none; }
+.news-date { color: #c9a063; font-weight: bold; margin-right: 5px; }
+
+/* --- ログインウィンドウ --- */
+.login-window { width: 100%; max-width: 320px; background: rgba(16, 16, 20, 0.9); border: 2px solid var(--border-bronze); border-radius: 6px; padding: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.9); display: flex; flex-direction: column; gap: 12px; }
+.login-header { color: #c9a063; font-family: 'Times New Roman', serif; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px; text-align: left; }
+.login-row { display: flex; justify-content: space-between; align-items: center; }
+.avatar-upload-section { display: flex; flex-direction: column; align-items: center; }
+.avatar-preview { width: 70px; height: 70px; border-radius: 6px; border: 2px solid #555; background-color: #333; background-position: center; background-size: cover; display: flex; align-items: center; justify-content: center; color: #888; font-size: 0.7rem; cursor: pointer; transition: 0.2s; }
+.avatar-preview:hover { border-color: var(--text-main); color: #fff; }
+.connection-status-box { text-align: right; }
+.label-text { font-size: 0.7rem; color: #888; display: block; margin-bottom: 2px; }
+.connection-panel { background: rgba(0,0,0,0.5); border: 1px solid #444; padding: 4px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.7em; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; }
-.dot-online { background: var(--status-online); box-shadow: 0 0 8px var(--status-online); }
+.dot-online { background: var(--hp-green); box-shadow: 0 0 5px var(--hp-green); }
+.input-group { text-align: left; }
+.input-label { display: block; font-size: 0.8rem; color: #ccc; margin-bottom: 4px; }
+input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 1rem; border-radius: 4px; border: 1px solid #5c4b37; background: #e6e6e0; color: #222; font-weight: bold; text-align: left; }
+.login-btn { width: 100%; padding: 12px; background: linear-gradient(to bottom, #b86e28, #6b3e11); border: 1px solid #d4af37; color: #fff; text-shadow: 1px 1px 0 #000; box-shadow: 0 4px 0 #3e2208; }
+.login-btn:active { transform: translateY(4px); box-shadow: none; }
+.login-btn:disabled { background: #333; border-color: #555; box-shadow: none; color: #888; }
 
-input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #333; width: 80%; max-width: 260px; margin-bottom: 15px; background: #000; color: white; text-align: center; }
-button { padding: 12px 24px; cursor: pointer; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--accent-color); color: white; font-weight: bold; transition: 0.2s; }
-button:disabled { background: #333; color: #888; cursor: not-allowed; }
-.primary-btn { background: var(--text-main); border: none; width: 220px; font-size: 1.1em; }
+/* --- ルーム選択ウィンドウ --- */
+.lobby-window { width: 95%; max-width: 450px; height: 70vh; max-height: 600px; background: var(--window-bg); border: 3px solid #5c4b37; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.9); display: flex; flex-direction: column; position: relative; }
+.lobby-header { display: flex; justify-content: center; align-items: center; padding: 10px; border-bottom: 2px solid #5c4b37; background: rgba(40, 30, 20, 0.8); position: relative; font-family: 'Times New Roman', serif; font-size: 1.2rem; font-weight: bold; color: #e0d0b0; text-shadow: 1px 1px 2px #000; }
+.close-btn { position: absolute; right: 10px; background: #5c2020; border: 1px solid #8c4040; color: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.lobby-tabs { display: flex; padding: 10px 10px 0; gap: 5px; }
+.lobby-tab { flex: 1; text-align: center; padding: 8px 0; border-radius: 6px 6px 0 0; font-weight: bold; cursor: pointer; font-size: 0.9rem; border: 1px solid #5c4b37; border-bottom: none; }
+.lobby-tab.active { background: linear-gradient(to bottom, #2a5a6a, #1a3a4a); color: #fff; border-color: #6c8b97; }
+.lobby-tab.inactive { background: #2a2520; color: #887766; border-color: #443322; }
+.room-list { flex: 1; overflow-y: auto; padding: 10px; background: rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; gap: 10px; }
+.room-item { background: #e8e0d0; border: 1px solid #8c7853; border-radius: 4px; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
+.room-item.full { background: #b0a89a; opacity: 0.7; }
+.room-info { text-align: left; }
+.room-name { color: #3e2208; font-weight: bold; font-size: 0.95rem; }
+.room-status { font-size: 0.75rem; color: #554433; }
+.lobby-footer { padding: 15px; border-top: 2px solid #5c4b37; background: rgba(40, 30, 20, 0.8); }
 
-.battle-field { width: 100%; max-width: 500px; }
-.hp-section { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-.player-row { display: flex; align-items: center; justify-content: space-between; }
-.hp-bar-outer { flex-grow: 1; height: 8px; background: #111; margin: 0 10px; overflow: hidden; border-radius: 4px; }
-.hp-bar-inner { height: 100%; background: var(--hp-green); width: 100%; transition: 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+/* --- 待機画面ウィンドウ --- */
+.wait-window { width: 95%; max-width: 450px; height: 80vh; max-height: 700px; background: var(--window-bg); border: 3px solid #5c4b37; border-radius: 8px; box-shadow: 0 0 30px rgba(0,0,0,0.9); display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; }
+.wait-header { font-family: 'Times New Roman', serif; font-size: 1.5rem; color: #c9a063; text-shadow: 1px 1px 2px #000; border-bottom: 2px solid #5c4b37; padding-bottom: 10px; margin-bottom: 15px; font-weight: bold; }
+.wait-player-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.wait-player-item { background: rgba(0, 0, 0, 0.4); border: 1px solid #5c4b37; border-radius: 4px; padding: 8px; display: flex; align-items: center; transition: background 0.3s; }
+.wait-player-item.ready { background: rgba(20, 50, 20, 0.6); border-color: var(--hp-green); }
+.wp-avatar { width: 40px; height: 40px; background-color: #333; background-size: cover; background-position: center; border-radius: 4px; border: 1px solid #888; margin-right: 10px; }
+.wp-name { flex: 1; text-align: left; font-weight: bold; font-size: 0.95rem; color: #e0e0e0; }
+.wp-status { font-size: 0.8rem; color: #aaa; margin-right: 10px; }
+.wait-player-item.ready .wp-status { color: var(--hp-green); font-weight: bold; }
+.wp-check { font-size: 1.2rem; color: transparent; }
+.wait-player-item.ready .wp-check { color: var(--hp-green); }
+.wait-chat-area { flex: 1; background: rgba(0, 0, 0, 0.5); border: 1px solid #444; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 15px; }
+.wait-chat-log { flex: 1; overflow-y: auto; padding: 10px; text-align: left; font-size: 0.8rem; color: #ccc; }
+.chat-msg { margin-bottom: 4px; line-height: 1.3; }
+.chat-msg .sender { color: #c9a063; font-weight: bold; margin-right: 5px; }
+.chat-msg.system { color: #888; font-style: italic; }
+.wait-chat-input-box { display: flex; border-top: 1px solid #444; }
+#chat-input { flex: 1; background: transparent; border: none; color: #fff; padding: 8px; }
+#chat-input:focus { outline: none; }
+.chat-send-btn { background: #333; border: none; border-left: 1px solid #444; color: #fff; padding: 0 15px; cursor: pointer; }
+.chat-send-btn:hover { background: #555; }
+.wait-footer { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.wait-btn { width: 200px; padding: 10px; font-weight: bold; cursor: pointer; border: 1px solid #000; box-shadow: 0 3px 0 rgba(0,0,0,0.5); border-radius: 4px; font-family: inherit; }
+.wait-btn.ready { background: linear-gradient(to bottom, #8b5a2b, #5e3b1f); border-color: #b8860b; color: #fff; }
+.wait-btn.ready:active { transform: translateY(2px); box-shadow: none; }
+.wait-btn.ready:disabled { filter: grayscale(100%); cursor: default; }
+.wait-btn.exit { background: linear-gradient(to bottom, #5a2b2b, #3b1f1f); border-color: #8b4040; color: #ccc; width: 150px; font-size: 0.9rem; }
+.wait-btn.exit:active { transform: translateY(2px); box-shadow: none; }
 
-.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-.card-btn { height: 95px; background: #0a0a0f; border: 1px solid #333; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; transition: all 0.2s ease; }
-.card-btn b { font-size: 1.0rem; margin-bottom: 6px; display: block; }
-.advantage-info { font-size: 0.65rem; color: #888; opacity: 0.8; }
+/* --- 画像ボタン --- */
+.image-btn { background: none; border: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s, filter 0.2s; }
+.image-btn img { display: block; width: 100%; height: auto; }
+.image-btn:hover { filter: brightness(1.1); }
+.image-btn:active { transform: translateY(2px); }
+.join-btn-img { width: 80px; flex-shrink: 0; }
+.join-btn-img:disabled { cursor: not-allowed; filter: grayscale(100%) brightness(0.7); opacity: 0.8; }
+.join-btn-img:disabled:active { transform: none; }
+.create-room-btn-img { width: 100%; max-width: 200px; margin: 0 auto; }
 
-#log { width: 100%; height: 200px; overflow-y: auto; margin-top: 20px; font-size: 0.85em; background: rgba(0,0,0,0.6); padding: 10px; text-align: left; border-left: 3px solid var(--text-main); box-sizing: border-box; }
-.log-entry { margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; }
-.log-hands { font-size: 1.1em; text-align: center; display: block; background: rgba(255,255,255,0.05); margin-bottom: 4px; }
-.multiplier-notice { color: #ffa500; font-weight: bold; text-align: center; border: 1px solid #ffa500; border-radius: 4px; font-size: 0.85em; padding: 2px; }
+/* --- バトル画面 UI --- */
+.game-header { margin-bottom: 10px; position: relative; text-align: center; }
+.round-display { font-size: 1.5rem; color: #fff; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 5px #e94560; }
+.players-container { display: flex; justify-content: space-between; margin-bottom: 15px; position: relative; }
+.center-vs { position: absolute; top: 40px; left: 50%; transform: translate(-50%, -50%); font-family: 'Times New Roman', serif; font-size: 2.2rem; font-weight: bold; color: var(--text-main); text-shadow: 0 0 10px var(--glow-color); z-index: 2; pointer-events: none; }
+.player-box { width: 40%; display: flex; flex-direction: column; align-items: center; position: relative; background: var(--battle-panel-bg); border: 2px solid var(--battle-border); border-radius: 6px; padding: 8px 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.7); }
+.icon-circle { width: 65px; height: 65px; background-color: #eee; border-radius: 50%; border: 3px solid #333; display: flex; align-items: center; justify-content: center; color: #333; font-weight: bold; font-size: 0.8rem; margin-bottom: 5px; overflow: hidden; background-position: center; background-size: cover; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+.player-name { font-size: 0.9rem; font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; color: #ddd; text-shadow: 1px 1px 2px #000; }
+.hp-bar-container { width: 95%; display: flex; align-items: center; gap: 5px; }
+.hp-bar-bg { flex-grow: 1; height: 8px; background: #111; border: 1px solid #444; border-radius: 4px; overflow: hidden; }
+.hp-bar-fill { height: 100%; width: 100%; background: var(--hp-green); transition: width 0.5s ease; box-shadow: 0 0 5px var(--hp-green); }
+.hp-text { font-size: 0.9rem; font-weight: bold; min-width: 15px; color: #fff; }
+.action-display { margin-top: 5px; font-size: 0.7rem; color: #aaa; display: flex; flex-direction: column; align-items: center; }
+.action-display .value { color: #fff; font-weight: bold; margin-top: 2px; }
+
+/* アクションボタン */
+.battle-field { }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; padding: 0 5px; }
+.card-btn { height: 80px; background: linear-gradient(to bottom, #3a3a40, #222226); border: 1px solid #555; border-bottom: 4px solid #111; border-radius: 8px; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; padding: 5px 15px; gap: 10px; color: #ddd; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: all 0.1s; }
+.card-btn:active { transform: translateY(3px); border-bottom-width: 1px; box-shadow: none; }
+.card-icon { width: 48px; height: 48px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(2px 2px 0 #000); }
+.btn-text-box { display: flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.btn-main { font-size: 1.1rem; font-weight: bold; margin-bottom: 2px; text-shadow: 1px 1px 0 #000; }
+.btn-sub { font-size: 0.65rem; color: #aaa; }
+.special-btn { grid-column: span 2; height: 60px; background: linear-gradient(to bottom, #4a2a4a, #2a1a2a); border-color: #744; border-bottom-color: #311; justify-content: center; }
+.card-btn.selected { background: var(--text-main); border-color: #fff; box-shadow: 0 0 15px var(--glow-color); color: #fff; transform: translateY(3px); border-bottom-width: 1px; }
+.card-btn.selected .btn-sub { color: #fff; }
+.card-grid:has(.selected) .card-btn:not(.selected) { opacity: 0.5; filter: grayscale(50%); }
+
+/* ログ・チャット コンテナ */
+.log-chat-container { display: flex; gap: 10px; width: 96%; margin: 0 auto; }
+#log { flex: 1; height: 200px; overflow-y: auto; background: rgba(0, 0, 0, 0.7); border: 1px solid #444; border-left: 4px solid var(--text-main); padding: 10px; text-align: left; box-sizing: border-box; font-size: 0.85rem; border-radius: 4px; margin: 0; }
+.battle-chat-area { flex: 1; height: 200px; background: rgba(0, 0, 0, 0.7); border: 1px solid #444; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+
+/* リタイアボタン */
+.retire-btn { background: linear-gradient(to bottom, #5a2b2b, #3b1f1f); border: 1px solid #8b4040; color: #ccc; padding: 8px 24px; border-radius: 4px; cursor: pointer; font-weight: bold; font-family: inherit; box-shadow: 0 2px 5px rgba(0,0,0,0.5); transition: all 0.2s; width: 200px; font-size: 0.9rem; }
+.retire-btn:hover { background: linear-gradient(to bottom, #7a3b3b, #4b2f2f); color: #fff; border-color: #ff4b2b; box-shadow: 0 0 10px rgba(255, 75, 43, 0.4); }
+.retire-btn:active { transform: translateY(2px); box-shadow: none; }
+
+.log-entry { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.log-hands { display: block; text-align: center; background: rgba(255,255,255,0.1); padding: 2px; border-radius: 4px; margin-bottom: 4px; font-weight: bold; }
+.multiplier-notice { color: #ffd700; text-align: center; font-weight: bold; border: 1px solid #ffd700; padding: 2px; margin-top: 2px; display: inline-block; width: 100%; box-sizing: border-box; }
+
+/* オーバーレイ・モーダル */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+.modal-box { background: var(--battle-panel-bg); border: 2px solid var(--border-bronze); border-radius: 8px; padding: 25px; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.9); max-width: 90%; width: 350px; }
+.modal-msg { color: #fff; font-size: 1.1rem; margin-bottom: 25px; font-weight: bold; }
+.modal-buttons { display: flex; justify-content: center; gap: 15px; }
 
-/* --- ここから追加：ボタン選択時のスタイル --- */
+.primary-btn.small { width: auto; min-width: 120px; font-size: 0.9rem; margin: 5px; }
+.primary-btn.green { background-color: var(--hp-green); color: #000; box-shadow: 0 4px 0 #00aa55; }
+.primary-btn.red { background-color: #800000; color: #fff; box-shadow: 0 4px 0 #500000; }
+.primary-btn.red:hover { background-color: #a00000; }
+.primary-btn { padding: 12px 24px; cursor: pointer; border-radius: 4px; border: none; background: var(--text-main); color: white; font-weight: bold; width: 200px; font-size: 1.1em; transition: 0.2s; box-shadow: 0 4px 0 #901025; }
 
-/* 選択されたカード */
-.card-btn.selected {
-  background-color: var(--text-main) !important; /* 赤くする */
-  color: #fff;
-  border: 2px solid #fff;
-  box-shadow: 0 0 15px var(--glow-color);
-  transform: translateY(-2px);
-}
+/* アニメーション */
+body.dmg-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255,0,0,0.3); animation: flash 0.3s forwards; pointer-events: none; }
+body.hit-flash::after { content: ""; position: fixed; inset: 0; background: rgba(255,255,255,0.3); animation: flash 0.2s forwards; pointer-events: none; }
+@keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+.shake-damage { animation: shake 0.3s; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
-/* 選択時に他のカードを少し暗くする（視認性向上） */
-.card-grid:has(.selected) .card-btn:not(.selected) {
-  opacity: 0.4;
-  transform: scale(0.98);
+/* スプラッシュ */
+#splash-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: center; z-index: 10000; transition: opacity 0.5s ease; }
+#splash-overlay.hidden { opacity: 0; pointer-events: none; }
+.splash-content { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.splash-title { font-family: 'Hiragino Mincho ProN', 'Yu Mincho', serif; color: #000; font-size: 2.2rem; font-weight: bold; letter-spacing: 0.1em; margin-bottom: 40px; text-align: center; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+.enter-btn-black { background: transparent; border: 2px solid #000; color: #000; font-family: 'Times New Roman', serif; font-size: 1.5rem; font-weight: bold; padding: 12px 50px; cursor: pointer; letter-spacing: 2px; transition: all 0.2s; text-decoration: none; animation: pulseBlack 2s infinite; }
+.enter-btn-black:hover { background: #000; color: #fff; transform: scale(1.05); }
+.splash-note-black { margin-top: 25px; color: #333; font-size: 0.75rem; font-family: sans-serif; letter-spacing: 1px; opacity: 0.8; }
+@keyframes pulseBlack { 0% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.02); opacity: 1; } 100% { transform: scale(1); opacity: 0.9; } }
+
+/* --- スマホ・タブレット用レスポンシブ (★修正: 完全版) --- */
+@media (max-width: 768px) {
+  /* スマホ用背景画像の適用 */
+  #screen-name {
+    background-image: url('title_bg_mobile.png'); 
+    background-position: center top; 
+    background-size: cover;
+    /* 上部42vhを空けて背景(ロゴやキャラ)を見せる */
+    padding-top: 42vh;
+    padding-bottom: 20px;
+    justify-content: flex-start !important; /* コンテンツを上詰め */
+  }
+  
+  /* スマホではCSSロゴを非表示 */
+  #screen-name .main-logo {
+    display: none;
+  }
+
+  /* レイアウト縦積み・順序反転 (ログイン上、ニュース下) */
+  .title-bottom-layout { 
+    flex-direction: column-reverse; 
+    align-items: center; 
+    gap: 10px; 
+    padding-bottom: 20px;
+    width: 100%;
+  }
+  
+  /* ウィンドウサイズ微調整 */
+  .news-window, .login-window { 
+    width: 90%; 
+    max-width: 350px; 
+  }
+  
+  .login-window {
+    margin-bottom: 5px; 
+    padding: 10px; 
+  }
+  
+  .news-content {
+      height: 100px;
+  }
+
+  /* ★修正: スプラッシュ文字の絶対崩壊防止 */
+  .splash-title { 
+    font-size: 6vw; /* 画面幅依存のサイズに変更(重要) */
+    width: 100%;     
+    white-space: nowrap; /* 改行禁止 */
+    overflow: visible;
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.5;
+  }
+  .enter-btn-black { 
+    font-size: 1.2rem; 
+    padding: 10px 30px; 
+  }
+
+  /* ロゴ縮小 */
+  .game-logo-text { font-size: 32px; }
+  .header-logo-box { height: 30px; }
+
+  /* プレイヤー情報コンパクト化 */
+  .players-container { margin-bottom: 10px; }
+  .player-box { width: 48%; padding: 5px; } 
+  .icon-circle { width: 50px; height: 50px; }
+  .player-name { font-size: 0.8rem; }
+  .center-vs { 
+    font-size: 1.2rem; 
+    top: 25px; 
+  }
+
+  /* カードボタンコンパクト化 */
+  .card-grid { gap: 8px; }
+  .card-btn { height: 70px; padding: 5px 10px; }
+  .card-icon { width: 32px; height: 32px; }
+  .btn-main { font-size: 0.95rem; }
+  .btn-sub { font-size: 0.6rem; }
+
+  /* ログとチャットを縦積み */
+  .log-chat-container { flex-direction: column; gap: 15px; }
+  #log { width: 100%; height: 140px; }
+  .battle-chat-area { width: 100%; height: 180px; }
+
+  /* リタイアボタン */
+  .retire-btn {
+    width: 90%; 
+    font-size: 0.85rem;
+    padding: 10px; 
+  }
+
+  /* モーダル */
+  .modal-box { width: 85%; padding: 20px; }
 }

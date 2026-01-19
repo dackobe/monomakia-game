@@ -7,73 +7,190 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div id="splash-overlay">
+    <div class="splash-content">
+      <h1 class="splash-title">MONOMAKIAへようこそ</h1>
+      <button class="enter-btn-black" onclick="enterGame()">[ ENTER ]</button>
+      <p class="splash-note-black">Click to Start / Sound On</p>
+    </div>
+  </div>
+
   <div id="screen-name" class="screen active">
-    <div class="logo-box">
+    <div class="logo-box main-logo">
       <svg class="game-logo-svg" viewBox="0 0 380 70">
-        <text x="50%" y="50" class="game-logo-text" font-size="48">MONOMAKIA</text>
+        <text x="50%" y="55" class="game-logo-text">MONOMAKIA</text>
       </svg>
     </div>
-    <div class="connection-panel">
-      <div id="status-dot" class="status-dot"></div>
-      <span id="status-text">CONNECTING...</span>
+
+    <div class="title-bottom-layout">
+      <div class="news-window">
+        <div class="news-tabs">
+          <div id="tab-news" class="news-tab active" onclick="switchNewsTab('news')">ニュース</div>
+          <div id="tab-event" class="news-tab" onclick="switchNewsTab('event')">イベント</div>
+        </div>
+        <div id="content-news" class="news-content">
+          <div class="news-item"><span class="news-date">【10/25】</span><span class="news-text">サーバーメンテナンス完了</span></div>
+          <div class="news-item"><span class="news-date">【10/20】</span><span class="news-text">新機能「アバターアップロード」</span></div>
+          <div class="news-item"><span class="news-date">【10/15】</span><span class="news-text">シーズン1「歯車の鼓動」開始</span></div>
+          <div class="news-item"><span class="news-date">【10/01】</span><span class="news-text">MONOMAKIA 正式サービス開始</span></div>
+        </div>
+        <div id="content-event" class="news-content" style="display:none;">
+          <div class="news-item" style="color: #ffcccc;"><span class="news-date" style="color: #ff4b2b;">【開催中】</span><span class="news-text">ハロウィンイベント「錆びついた宴」</span></div>
+          <div class="news-item"><span class="news-date">【予告】</span><span class="news-text">レイドボス「蒸気巨人」出現予兆...</span></div>
+        </div>
+      </div>
+
+      <div class="login-window">
+        <div class="login-header">ENTRY</div>
+        <div class="login-row">
+          <div class="avatar-upload-section">
+            <label for="image-upload" class="avatar-preview" id="avatar-preview"><span>No<br>Img</span></label>
+            <input type="file" id="image-upload" accept="image/*" style="display:none;">
+          </div>
+          <div class="connection-status-box">
+             <span class="label-text">Status</span>
+             <div class="connection-panel"><div id="status-dot" class="status-dot"></div><span id="status-text">CONNECTING...</span></div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">剣闘士名 (User Name)</label>
+          <input type="text" id="user-name" placeholder="名前を入力" maxlength="10">
+        </div>
+        <button id="start-button" class="primary-btn login-btn" onclick="initAudioAndLobby()" disabled>ログイン (入室)</button>
+      </div>
     </div>
-    <input type="text" id="user-name" placeholder="剣闘士の名を入力" maxlength="10">
-    <button id="start-button" class="primary-btn" onclick="initAudioAndLobby()" disabled>闘技場へ入る</button>
   </div>
 
   <div id="screen-lobby" class="screen">
-    <h2 style="color: var(--text-main);">戦場を選択</h2>
-    <div class="room-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-      <button class="card-btn" onclick="joinRoom(1)">第壱の場</button>
-      <button class="card-btn" onclick="joinRoom(2)">第弐の場</button>
+    <div class="lobby-window">
+      <div class="lobby-header">
+        <span>ルーム選択</span>
+        <button class="close-btn" onclick="location.reload()">×</button>
+      </div>
+      <div class="lobby-tabs">
+        <div class="lobby-tab active">フリー対戦</div>
+        <div class="lobby-tab inactive">ランクマッチ</div>
+      </div>
+      <div class="room-list" id="room-list-container"></div>
+      <div class="lobby-footer">
+        <button class="image-btn create-room-btn-img" onclick="createNewRoom()">
+          <img src="btn_create_room.png" alt="新規ルーム作成">
+        </button>
+      </div>
     </div>
   </div>
 
   <div id="screen-wait" class="screen">
-    <h2 id="room-display">FIELD</h2>
-    <button id="ready-btn" class="primary-btn" onclick="sendReady()">準備完了</button>
-  </div>
-
-  <div id="screen-game" class="screen">
-    <div id="battle-wrap" class="battle-field">
-      <div class="hp-section">
-        <div class="player-row">
-          <span id="p1-name" style="font-weight:bold; min-width:80px;">Player1</span>
-          <div class="hp-bar-outer"><div id="p1-hp-fill" class="hp-bar-inner"></div></div>
-          <span id="p1-hp-text">5</span>
-        </div>
-        <div class="player-row">
-          <span id="p2-name" style="font-weight:bold; min-width:80px;">Player2</span>
-          <div class="hp-bar-outer"><div id="p2-hp-fill" class="hp-bar-inner"></div></div>
-          <span id="p2-hp-text">5</span>
+    <div class="wait-window">
+      <div class="wait-header">ROOM: <span id="room-display">Waiting...</span></div>
+      <div class="wait-player-list" id="wait-player-list"></div>
+      <div class="wait-chat-area">
+        <div class="wait-chat-log" id="wait-chat-log"></div>
+        <div class="wait-chat-input-box">
+          <input type="text" id="chat-input" placeholder="チャットを入力..." onkeydown="if(event.key==='Enter') sendChat()">
+          <button class="chat-send-btn" onclick="sendChat()">💬</button>
         </div>
       </div>
-      
-      <div class="card-grid">
-        <button id="btn-smash" class="card-btn" onclick="sendCard('smash')"><b>💥 強襲</b><span class="advantage-info">▶ 🛡️ 盾を崩す</span></button>
-        <button id="btn-guard" class="card-btn" onclick="sendCard('guard')"><b>🛡️ 盾で守る</b><span class="advantage-info">▶ ⚔️ 剣を弾く</span></button>
-        <button id="btn-attack" class="card-btn" onclick="sendCard('attack')"><b>⚔️ 剣で切る</b><span class="advantage-info">▶ 🃏 避けるを突く</span></button>
-        <button id="btn-feint" class="card-btn" onclick="sendCard('feint')"><b>🃏 避ける</b><span class="advantage-info">▶ 💥 大振りを躱す</span></button>
-        <button id="btn-special" class="card-btn special-btn" style="grid-column: span 2; height: 60px;" onclick="sendCard('special')">
-          <b style="color: #a349a4;">🌀 奇行</b>
-          <span class="advantage-info">??? 予測不能 ???</span>
-        </button>
-      </div>
-      
-      <div id="log"></div>
-      
-      <div id="restart-area" style="display:none; margin-top: 20px; justify-content: center; gap: 10px; display: flex;">
-        <button class="primary-btn" onclick="location.reload()" style="width: auto; min-width: 120px; font-size: 0.9rem;">タイトルへ戻る</button>
-        <button class="primary-btn" onclick="this.disabled=true; this.innerText='待機中...'; sendReady()" style="width: auto; min-width: 120px; font-size: 0.9rem; background-color: var(--hp-green); color: #000; border: none;">🔥 再戦</button>
+      <div class="wait-footer">
+        <button id="ready-btn" class="wait-btn ready" onclick="sendReady()">準備完了</button>
+        <button class="wait-btn exit" onclick="exitRoom()">退出</button>
       </div>
     </div>
   </div>
 
+  <div id="screen-game" class="screen game-screen">
+    <div class="game-header">
+      <div class="logo-box header-logo-box">
+        <svg class="game-logo-svg" viewBox="0 0 380 70" preserveAspectRatio="xMidYMid meet">
+          <text x="50%" y="55" class="game-logo-text">MONOMAKIA</text>
+        </svg>
+      </div>
+      <div class="round-display">ROUND <span id="round-count">1</span></div>
+    </div>
+    <div class="players-container">
+      <div class="player-box">
+        <div id="p1-icon" class="icon-circle"></div>
+        <div class="player-name" id="p1-name">Player 1</div>
+        <div class="hp-bar-container"><div class="hp-bar-bg"><div id="p1-hp-fill" class="hp-bar-fill"></div></div><span id="p1-hp-text" class="hp-text">5</span></div>
+        <div class="action-display"><span class="label">選択した手段</span><span id="p1-last-action" class="value">---</span></div>
+      </div>
+      <div class="center-vs">VS</div>
+      <div class="player-box">
+        <div id="p2-icon" class="icon-circle"></div>
+        <div class="player-name" id="p2-name">Player 2</div>
+        <div class="hp-bar-container"><div class="hp-bar-bg"><div id="p2-hp-fill" class="hp-bar-fill"></div></div><span id="p2-hp-text" class="hp-text">5</span></div>
+        <div class="action-display"><span class="label">選択した手段</span><span id="p2-last-action" class="value">---</span></div>
+      </div>
+    </div>
+    
+    <div class="battle-field">
+      <div class="card-grid">
+        <button id="btn-smash" class="card-btn" onclick="sendCard('smash')">
+          <img src="smash.png" class="card-icon" alt="Smash">
+          <div class="btn-text-box"><div class="btn-main">強襲</div><div class="btn-sub">▶ 盾を崩す</div></div>
+        </button>
+        <button id="btn-guard" class="card-btn" onclick="sendCard('guard')">
+          <img src="guard.png" class="card-icon" alt="Guard">
+          <div class="btn-text-box"><div class="btn-main">守備</div><div class="btn-sub">▶ 剣を弾く</div></div>
+        </button>
+        <button id="btn-attack" class="card-btn" onclick="sendCard('attack')">
+          <img src="attack.png" class="card-icon" alt="Attack">
+          <div class="btn-text-box"><div class="btn-main">斬撃</div><div class="btn-sub">▶ 避けるを突く</div></div>
+        </button>
+        <button id="btn-feint" class="card-btn" onclick="sendCard('feint')">
+          <img src="escape.png" class="card-icon" alt="Feint">
+          <div class="btn-text-box"><div class="btn-main">避ける</div><div class="btn-sub">▶ 大振りを躱す</div></div>
+        </button>
+        <button id="btn-special" class="card-btn special-btn" onclick="sendCard('special')">
+          <img src="mystery.png" class="card-icon" alt="Special">
+          <div class="btn-text-box"><div class="btn-main" style="color: #a349a4;">奇行</div><div class="btn-sub">??? 予測不能 ???</div></div>
+        </button>
+      </div>
+
+      <div class="log-chat-container">
+        <div id="log"></div>
+        <div class="battle-chat-area">
+          <div id="battle-chat-log" class="wait-chat-log"></div>
+          <div class="wait-chat-input-box">
+            <input type="text" id="battle-chat-input" placeholder="Battle Chat..." onkeydown="if(event.key==='Enter') sendBattleChat()">
+            <button class="chat-send-btn" onclick="sendBattleChat()">💬</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="retire-area-container" style="text-align: center; margin-top: 15px;">
+        <button class="retire-btn" onclick="openRetireModal()">🏳️ リタイアする</button>
+      </div>
+
+      <div id="restart-area" style="display:none; margin-top: 20px; justify-content: center; gap: 10px; display: flex;">
+        <button class="primary-btn small" onclick="exitRoom()">ロビーへ戻る</button>
+        <button class="primary-btn small green" onclick="this.disabled=true; this.innerText='待機中...'; sendReady()">🔥 再戦</button>
+      </div>
+    </div>
+  </div>
+  
   <div id="finish-screen" class="overlay">
     <h1 id="winner-text">勝利</h1>
     <button id="finish-btn-main" class="primary-btn" onclick="this.disabled=true; this.innerText='待機中...'; sendReady()">🔥 もう一度戦う</button>
     <button class="card-btn" onclick="hideOverlay()" style="margin-top:15px; height:auto; width: 220px;">ログを確認する</button>
   </div>
+
+  <div id="retire-modal" class="overlay">
+    <div class="modal-box">
+      <p class="modal-msg">リタイアしてロビーにもどりますか？</p>
+      <div class="modal-buttons">
+        <button class="primary-btn small" onclick="closeRetireModal()">キャンセル</button>
+        <button class="primary-btn small red" onclick="confirmRetire()">ロビーに戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="bgm" src="lobby.mp3" loop preload="auto"></audio>
+  <audio id="bgm-battle" src="battle.mp3" loop preload="auto"></audio>
+  <audio id="se-hover" src="cursor.mp3" preload="auto"></audio>
+  <audio id="se-login" src="login.mp3" preload="auto"></audio>
+  <audio id="se-newroom" src="newroom.mp3" preload="auto"></audio>
+  <audio id="se-draw" src="aiko.mp3" preload="auto"></audio>
 
   <script src="audio-manager.js"></script>
   <script src="special-actions.js"></script>
